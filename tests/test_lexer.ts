@@ -29,7 +29,15 @@ const test2 = `
 78 data9,0.45444,34e3
 `.toUpperCase();
 
+const test3 = `
+10READA1,A2
+15LETD=A1*A2
+65PRINTD
+70DATA 1,2
+90 END
+`;
 
-let lex = new Lexer(test1);
+
+let lex = new Lexer(test3);
 
 console.log(lex.analyse());
