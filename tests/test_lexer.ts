@@ -1,43 +1,28 @@
+import * as fs from 'node:fs/promises';
+
 import { Lexer } from '../src/Lexer.ts';
 
 
-const test1 = `
-10  READ A1, A2 ,A3, A4
-15  LET D = A1 * A4 - A3 * A2
-20  IF D = 0 THEN 65
-30  READ B1, B2
-37  LET X1 = (B1 * A4 - B2 * A2) / D
-42  LET X2 = (A1 * B2 - A3 * B1) / D
-55  PRINT X1, X2
-60  GOTO 30
-65  PRINT "NO UNIQUE SOLUTION"
-70  DATA 1, 2, 4
-80  DATA 2, -7, 5
-85  DATA 1, 3, 4, -7
-90  END
-`;
 
-const test2 = `
-10read x1, f, j( 2 ,7    ), l
-20 print "ajdksjkdjks djs jd jdj j j j jj "
+const test1 = await fs.readFile('./example.bas', 'utf8').catch((err) =>
+{
+    console.error('Error reading file :', err);
+    process.exit();
+});
 
-22goto99
-99rema
+const test2 = (await fs.readFile('./test.bas', 'utf8').catch((err) =>
+{
+    console.error('Error reading file :', err);
+    process.exit();
+})).toUpperCase();
 
-999    end
-
-78 data9,0.45444,34e3
-`.toUpperCase();
-
-const test3 = `
-10READA1,A2
+const test3 = `10READA1,A2
 15LETD=A1*A2
 65PRINTD
-70DATA 1,2
-90 END
-`;
+70DATA1,2
+90END`;
 
 
-let lex = new Lexer(test3);
+let lex = new Lexer(test2);
 
 console.log(lex.analyse());

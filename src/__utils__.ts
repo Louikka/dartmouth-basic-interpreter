@@ -89,7 +89,7 @@ export function isPunctuation(char: string): boolean
 
 export function isWhitespace(char: string): boolean
 {
-    return ' \t\n'.includes(char);
+    return ' \t\r'.includes(char);
 }
 
 

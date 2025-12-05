@@ -1,5 +1,5 @@
 10read x1, f, j( 2 ,7    ), l
-20 print 'ajdksjkdjks djs jd jdj j j j jj '
+20 print "ajdksjkdjks djs jd jdj j j j jj "
 
 22goto99
 99rema

@@ -1,9 +1,9 @@
 type AST = {
     type: 'PROGRAM';
-    value: Array<ProgramLine>;
+    value: Array<ASTLine>;
 };
 
-type ProgramLine = {
+type ASTLine = {
     line_number: number;
     statement: BASICStatement;
     value: Array<Token>;

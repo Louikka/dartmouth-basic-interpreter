@@ -4,8 +4,7 @@ import {
     isKeywordStart,
     isOperatorChar,
     isPunctuation,
-    isVar,
-    isVarStart,
+    isVar, isVarStart,
     isWhitespace
 // @ts-ignore
 } from './__utils__.ts';
@@ -35,6 +34,12 @@ export class __CharStream
     public get currentColumnInLine(): number
     {
         return this.col;
+    }
+
+    public throwError(message: string): never
+    {
+        console.error(`(${this.line}:${this.col}) ${message}`);
+        process.exit(0);
     }
 
 
@@ -112,10 +117,7 @@ export class Lexer
      */
     public tokenList: Array<Token>;
 
-    public throwError(message: string)
-    {
-        throw new Error(`(${this.charStream.currentLine}:${this.charStream.currentColumnInLine}) ${message}`);
-    }
+    public throwError: (message: string) => never;
 
 
     constructor(s: string)
@@ -123,6 +125,7 @@ export class Lexer
         this.inputString = s;
         this.charStream = new __CharStream(s);
         this.tokenList = [];
+        this.throwError = this.charStream.throwError;
     }
 
 
@@ -148,7 +151,7 @@ export class Lexer
     }
 
 
-    private readNumber(): Token
+    private readNumber(): NumToken
     {
         let ifFloat = false;
         let isScientific = false;
@@ -184,19 +187,19 @@ export class Lexer
             value : parseFloat(n),
         };
     }
-    public __test_readNumber__()
-    {
-        return this.readNumber();
-    }
 
-
-    private readString(): Token
+    private readString(): StrToken
     {
         let s = '';
 
         while (!this.charStream.isEndOfStream())
         {
             let char = this.charStream.next();
+
+            if (char === '\n')
+            {
+                this.throwError(`Encountered line break instead of quote.`);
+            }
 
             if (/*char === '\'' || */char === '"')
             {
@@ -214,13 +217,8 @@ export class Lexer
             value : s,
         };
     }
-    public __test_readString__()
-    {
-        return this.readString();
-    }
 
-
-    private readKeyword(): Token
+    private readKeyword(): KeywToken
     {
         let keyw = this.readWhile((char, before, after, readString) =>
         {
@@ -234,13 +232,8 @@ export class Lexer
             value : keyw,
         };
     }
-    public __test_readKeyword__()
-    {
-        return this.readKeyword();
-    }
 
-
-    private readIdentifier(): Token
+    private readIdentifier(): VarToken
     {
         let id = this.readWhile((char, before, after, readString) =>
         {
@@ -256,21 +249,21 @@ export class Lexer
             value : id,
         };
     }
-    public __test_readIdentifier__()
-    {
-        return this.readIdentifier();
-    }
 
-
-    private skipComment()
+    private skipComment(): SpecToken
     {
         this.readWhile((char, before, after, readString) => char !== '\n');
         this.charStream.next();
+
+        return {
+            type : 'spec',
+            value : 'LINEBREAK',
+        };
     }
 
 
 
-    private readNext(): Token | null
+    private readNext(): Token
     {
         // skip all whitespaces
         this.readWhile((char, before, after, readString) => isWhitespace(char));
@@ -285,6 +278,16 @@ export class Lexer
 
         let char = this.charStream.peek();
 
+
+        if (char === '\n')
+        {
+            this.charStream.next();
+
+            return {
+                type : 'spec',
+                value : 'LINEBREAK',
+            };
+        }
 
         if (char === '"')
         {
@@ -307,7 +310,7 @@ export class Lexer
 
             if (token.value === 'REM')
             {
-                this.skipComment();
+                return this.skipComment();
             }
 
             return convertLogicalOperator(token);
@@ -331,8 +334,7 @@ export class Lexer
             };
         }
 
-        console.error(`Cannot handle character : "${char}"`);
-        return null;
+        this.throwError(`Cannot handle character : "${char}"`);
     }
 
 
@@ -362,8 +364,6 @@ export class Lexer
         }
 
         let token = this.readNext();
-        if (token === null) return null;
-
         this.tokenList.push(token);
 
         return token;
@@ -381,15 +381,11 @@ export class Lexer
 
     public analyse(): Array<Token>
     {
-        while (true)
+        do
         {
-            let token = this.readNext();
-            if (token === null) break;
-
-            this.tokenList.push(token);
-
-            if (this.isEndOfStream()) break;
+            this.tokenList.push( this.readNext() );
         }
+        while (!this.isEndOfStream())
 
         return this.tokenList;
     }
