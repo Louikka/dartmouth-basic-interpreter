@@ -122,8 +122,8 @@ export class Lexer
 
     constructor(s: string)
     {
-        this.inputString = s;
-        this.charStream = new __CharStream(s);
+        this.inputString = s.trim().toUpperCase();
+        this.charStream = new __CharStream(this.inputString);
         this.tokenList = [];
         this.throwError = this.charStream.throwError;
     }
