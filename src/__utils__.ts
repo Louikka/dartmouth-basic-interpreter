@@ -41,6 +41,8 @@ export const KEYWORDS = [
     'NQU',
 ];
 
+export const BASICOperators: Array<BASICOperator> = [ '+', '-', '*', '/', '^', ];
+
 
 
 export function isStatement(s: string)
@@ -153,4 +155,148 @@ export function convertLogicalOperator(token: Token): Token
             return token;
         }
     }
+}
+
+export function getPrecedence(o: BASICOperator): number
+{
+    switch (o)
+    {
+        case '+':
+        case '-':
+        {
+            return 1;
+        }
+        case '*':
+        case '/':
+        {
+            return 2;
+        }
+        case '^':
+        {
+            return 3;
+        }
+
+        default:
+        {
+            return -1;
+        }
+    }
+}
+
+
+
+export function convertInfixToRPN(stack: (NumToken | PuncToken)[]): Array<NumToken | PuncToken>
+{
+    let returnStack: (NumToken | PuncToken)[] = [];
+    let memoryStack: (NumToken | PuncToken)[] = [];
+
+    for (const T of stack)
+    {
+        if (T.type === 'num')
+        {
+            returnStack.push(T);
+        }
+        else if (T.value === '(')
+        {
+            memoryStack.push(T);
+        }
+        else if (T.value === ')')
+        {
+            while (memoryStack[memoryStack.length - 1].value !== '(')
+            {
+                returnStack.push(memoryStack.pop()!);
+            }
+            memoryStack.pop();
+        }
+        // @ts-ignore
+        else if (BASICOperators.includes(T.value))
+        {
+            // @ts-ignore
+            while (getPrecedence(memoryStack[memoryStack.length - 1]) >= getPrecedence(T.value))
+            {
+                returnStack.push(memoryStack.pop()!);
+            }
+            memoryStack.push(T);
+        }
+    }
+
+    returnStack.push( ...memoryStack.reverse() );
+
+    return returnStack;
+}
+
+export function calculateRPN(stack: (NumToken | PuncToken)[]): NumToken | null
+{
+    if (stack.length < 3)
+    {
+        console.error(`Not enough tokens in stack.`);
+        return null;
+    }
+    if (stack[0].type !== 'num' || stack[1].type !== 'num')
+    {
+        console.error(`First or second token in not of number type.`);
+        return null;
+    }
+
+    let returnStack: NumToken[] = [];
+
+    for (const T of stack)
+    {
+        if (T.type === 'num')
+        {
+            returnStack.push(T);
+        }
+        else
+        {
+            let n1 = returnStack.shift()!.value;
+            let n2 = returnStack.shift()!.value;
+
+            switch (T.value)
+            {
+                case '+':
+                {
+                    returnStack.push({
+                        type : 'num',
+                        value : n1 + n2,
+                    });
+                }
+                case '-':
+                {
+                    returnStack.push({
+                        type : 'num',
+                        value : n1 - n2,
+                    });
+                }
+                case '*':
+                {
+                    returnStack.push({
+                        type : 'num',
+                        value : n1 * n2,
+                    });
+                }
+                case '/':
+                {
+                    returnStack.push({
+                        type : 'num',
+                        value : n1 / n2,
+                    });
+                }
+                case '^':
+                {
+                    returnStack.push({
+                        type : 'num',
+                        value : n1 ** n2,
+                    });
+                }
+
+                default:
+                {
+                    console.error(`Unexpected token "${ T.value }".`);
+                    return null;
+                }
+            }
+        }
+    }
+
+    return returnStack[0];
 }
