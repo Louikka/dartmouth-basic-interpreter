@@ -2,12 +2,12 @@ import {
     convertLogicalOperator,
     isDigit, isKeyword,
     isKeywordStart,
-    isOperatorChar,
+    isOperator,
     isPunctuation,
     isVar, isVarStart,
     isWhitespace
 // @ts-ignore
-} from './__utils__.ts';
+} from './__helpers__.ts';
 
 
 export class __CharStream
@@ -326,11 +326,11 @@ export class Lexer
             };
         }
 
-        if (isOperatorChar(char))
+        if (isOperator(char))
         {
             return {
                 type : 'oper',
-                value : this.readWhile((char, before, after, readString) => isOperatorChar(char)),
+                value : this.readWhile((char, before, after, readString) => isOperator(char)),
             };
         }
 

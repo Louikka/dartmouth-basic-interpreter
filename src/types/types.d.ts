@@ -30,6 +30,7 @@ type SpecToken = {
 };
 
 
+
 type Node = NumNode | StrNode | VarNode | BinNode | AsgnNode;
 
 type NumNode = {
@@ -47,8 +48,8 @@ type VarNode = {
 type BinNode = {
     type: 'BINARY';
     operator: BASICOperator;
-    left: ExprNode;
-    right: ExprNode;
+    left: NumNode | VarNode | BinNode;
+    right: NumNode | VarNode | BinNode;
 };
 type ExprNode = {
     type: 'EXPRESSION';
@@ -56,10 +57,10 @@ type ExprNode = {
 };
 type AsgnNode = {
     type: 'ASSIGN';
-    operator: '=';
-    left: VarNode;
-    right: ExprNode;
+    variable: VarNode;
+    value: ExprNode;
 };
+
 
 
 type ASTStatement = LETStatement | READStatement | DATAStatement | PRINTStatement | GOTOStatement | IFTHENStatement | FORStatement | NEXTStatement | ENDStatement | STOPStatement | DEFStatement | GOSUBStatement | RETURNStatement | DIMStatement;
@@ -149,6 +150,7 @@ type REMStatement = {
     statement: 'REM';
     value?: string;
 };
+
 
 
 type ASTRoot = {

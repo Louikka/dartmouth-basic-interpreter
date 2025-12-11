@@ -2,4 +2,4 @@ type BASICStatement = 'LET' | 'READ' | 'DATA' | 'PRINT' | 'GOTO' | 'IF' | 'FOR' 
 
 type BASICOperator = '+' | '-' | '*' | '/' | '^';
 
-type BASICCondition = '<' | '>' | '=';
+type BASICCondition = '<' | '>' | '=' | '<=' | '>=' | '<>';
