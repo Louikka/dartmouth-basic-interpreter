@@ -1,88 +1,13 @@
-export const BASICStatements = [
-    'LET',
-    'READ',
-    'DATA',
-    'PRINT',
-    'GOTO',
-    'IF',
-    'FOR',
-    'NEXT',
-    'END',
-    'STOP',
-    'DEF',
-    'GOSUB',
-    'RETURN',
-    'DIM',
-    'REM',
-];
-
-export const BASICKeywords = [
-    'LET',
-    'READ',
-    'DATA',
-    'PRINT',
-    'GOTO',
-    'IF', 'THEN',
-    'FOR', 'TO', 'STEP',
-    'NEXT',
-    'END',
-    'STOP',
-    'DEF', 'FN',
-    'GOSUB',
-    'RETURN',
-    'DIM',
-    'REM',
-
-    'EQU',
-    'LSS',
-    'GRT',
-    'LQU',
-    'GQU',
-    'NQU',
-];
-
-export const BASICOperators = [ '+', '-', '*', '/', '^', ];
-
-export const puncTokens = {
-    parenOpen : {
-        type : 'punc',
-        value : '(',
-    } as PuncToken,
-    parenClose : {
-        type : 'punc',
-        value : ')',
-    } as PuncToken,
-    plus : {
-        type : 'punc',
-        value : '+',
-    } as PuncToken,
-    minus : {
-        type : 'punc',
-        value : '-',
-    } as PuncToken,
-    star : {
-        type : 'punc',
-        value : '*',
-    } as PuncToken,
-    slash : {
-        type : 'punc',
-        value : '/',
-    } as PuncToken,
-    caret : {
-        type : 'punc',
-        value : '^',
-    } as PuncToken,
-};
+// @ts-ignore
+import { BASICConditionOperators, BASICKeywords, BASICOperators, BASICStatements, puncTokens } from './__constants__.ts';
 
 
-
-
+/* test functions */
 
 export function isStatement(s: string)
 {
     return BASICStatements.includes(s);
 }
-
 
 export function isKeywordStart(char: string): boolean
 {
@@ -104,6 +29,7 @@ export function isVarStart(char: string): boolean
     return /[A-Z]/i.test(char);
 }
 
+/** Tests if `char` can be as part of the variable name (except first character -> see `isVarStart`). */
 export function isVar(char: string): boolean
 {
     return /[0-9]/i.test(char);
@@ -111,7 +37,7 @@ export function isVar(char: string): boolean
 
 export function isOperator(char: string): boolean
 {
-    return [ ...BASICOperators, '=', '<', '>', /*'<=', '>=', '<>',*/ ].includes(char);
+    return BASICOperators.includes(char) || BASICConditionOperators.includes(char);
 }
 
 export function isPunctuation(char: string): boolean
@@ -125,12 +51,33 @@ export function isWhitespace(char: string): boolean
 }
 
 
+
+/* other useful stuff */
+
 export function isNumeric(str: string): boolean
 {
     if (typeof str === 'number') return true;
     if (typeof str !== 'string') return false;
     return !isNaN(+str) && !isNaN(parseFloat(str));
 }
+
+export function doesContainBinary(list: Token[]): boolean
+{
+    if (!list.some((T) => T.type === 'oper'))
+    {
+        return false;
+    }
+    else
+    {
+        if (list.filter((T) => T.type === 'oper').length === 1 && list[0].type === 'oper')
+        {
+            return false;
+        }
+
+        return true;
+    }
+}
+
 
 
 export function convertLogicalOperator(token: Token): Token
@@ -228,7 +175,7 @@ export function parenthesizeExpression(input: Token[]): Token[]
                 const prevT = input[i - 1];
 
                 // unary check: either first or had an operator expecting secondary argument
-                if (i === 0 || (prevT.type === 'punc' && '(*^/+-'.includes(prevT.value)))
+                if (i === 0 || (prevT.type === 'punc' && [ ...BASICOperators, '(' ].includes(prevT.value)))
                 {
                     __return.push(puncTokens.plus);
                 }
@@ -247,7 +194,7 @@ export function parenthesizeExpression(input: Token[]): Token[]
             {
                 const prevT = input[i - 1];
 
-                if (i === 0 || (prevT.type === 'punc' && '(*^/+-'.includes(prevT.value)))
+                if (i === 0 || (prevT.type === 'punc' && [ ...BASICOperators, '(' ].includes(prevT.value)))
                 {
                     __return.push(puncTokens.minus);
                 }
@@ -303,5 +250,5 @@ export function readParenthesis(expr: Token[]): Token[]
 
 export function parseParenthesizedExpression(expr: Token[])
 {
-    //
+    // TO-DO
 }

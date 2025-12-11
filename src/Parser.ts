@@ -1,4 +1,6 @@
 // @ts-ignore
+import { parenthesizeExpression } from './__helpers__.ts';
+// @ts-ignore
 import { Lexer } from './Lexer.ts';
 
 
@@ -13,6 +15,23 @@ export class Parser
     {
         this.lexer = lexer;
         this.throwError = this.lexer.throwError;
+    }
+
+
+    /**
+     * @param predicate test function.
+     */
+    private readWhile(predicate: (token: Token, readList: Token[]) => boolean): Token[]
+    {
+        let tList: Token[] = [];
+
+        while (!this.lexer.isEndOfStream() && this.lexer.peek() !== null && predicate(this.lexer.peek()!, tList))
+        {
+            tList.push(this.lexer.peek()!);
+            this.lexer.next();
+        }
+
+        return tList;
     }
 
 
@@ -44,32 +63,16 @@ export class Parser
         };
     }
 
-    /*
-    private maybeBinary(left, my_prec)
+    private parseBinary()//: BinNode
     {
-        let tok = is_op();
-
-        if (tok)
-        {
-            let his_prec = PRECEDENCE[tok.value];
-            if (his_prec > my_prec)
-            {
-                input.next();
-                let right = this.maybeBinary(parse_atom(), his_prec) // (*);
-                let binary = {
-                    type     : tok.value == "=" ? "assign" : "binary",
-                    operator : tok.value,
-                    left     : left,
-                    right    : right
-                };
-
-                return this.maybeBinary(binary, my_prec);
-            }
-        }
-
-        return left;
+        //
     }
-    */
+
+    private readExpression()
+    {
+        let expr = this.readWhile((T, tl) => T.type === 'spec' && T.value === 'LINEBREAK');
+        let parenthesized = parenthesizeExpression(expr);
+    }
 
 
     /*

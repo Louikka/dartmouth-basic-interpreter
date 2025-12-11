@@ -51,7 +51,7 @@ type BinNode = {
     left: NumNode | VarNode | BinNode;
     right: NumNode | VarNode | BinNode;
 };
-type ExprNode = {
+type ExprNode = { // ???
     type: 'EXPRESSION';
     value: NumNode | VarNode | BinNode;
 };
