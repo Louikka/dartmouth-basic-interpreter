@@ -1,11 +1,11 @@
 import {
-    convertLogicalOperator,
     isDigit, isKeyword,
     isKeywordStart,
     isOperator,
     isPunctuation,
     isVar, isVarStart,
-    isWhitespace
+    isWhitespace,
+    throwError
 // @ts-ignore
 } from './__helpers__.ts';
 
@@ -20,35 +20,12 @@ export class __CharStream
     }
 
     private pos: number;
-    private line: number;
-    private col: number;
-
-    public get currentCharPosition(): number
-    {
-        return this.pos;
-    }
-    public get currentLine(): number
-    {
-        return this.line;
-    }
-    public get currentColumnInLine(): number
-    {
-        return this.col;
-    }
-
-    public throwError(message: string): never
-    {
-        console.error(`(${this.line}:${this.col}) ${message}`);
-        process.exit(0);
-    }
 
 
     constructor(s: string)
     {
         this.inputString = s;
         this.pos = 0;
-        this.line = 1;
-        this.col = 0;
     }
 
 
@@ -80,17 +57,6 @@ export class __CharStream
     public next(): string
     {
         this.pos++;
-
-        if (this.peek() === '\n')
-        {
-            this.line++;
-            this.col = 0;
-        }
-        else
-        {
-            this.col++;
-        }
-
         return this.peek();
     }
 
@@ -100,6 +66,7 @@ export class __CharStream
         return this.peek() === '';
     }
 }
+
 
 
 export class Lexer
@@ -115,9 +82,14 @@ export class Lexer
     /**
      * List of currently precessed tokens.
      */
-    public tokenList: Array<Token>;
+    private tokenList: Array<Token>;
 
-    public throwError: typeof this.charStream.throwError;
+    public get processedTokens(): Array<Token>
+    {
+        return this.tokenList;
+    }
+
+    private tokenPos: number;
 
 
     constructor(s: string)
@@ -125,7 +97,8 @@ export class Lexer
         this.inputString = s.trim().toUpperCase();
         this.charStream = new __CharStream(this.inputString);
         this.tokenList = [];
-        this.throwError = this.charStream.throwError;
+        this.analyse();
+        this.tokenPos = 0;
     }
 
 
@@ -198,7 +171,7 @@ export class Lexer
 
             if (char === '\n')
             {
-                this.throwError(`Encountered line break instead of quote.`);
+                throwError(`Lexer error : Encountered line break instead of quote.`);
             }
 
             if (/*char === '\'' || */char === '"')
@@ -250,15 +223,9 @@ export class Lexer
         };
     }
 
-    private skipComment(): SpecToken
+    private skipComment(): string
     {
-        this.readWhile((char, before, after, readString) => char !== '\n');
-        this.charStream.next();
-
-        return {
-            type : 'spec',
-            value : 'LINEBREAK',
-        };
+        return this.readWhile((char, before, after, readString) => char !== '\n');
     }
 
 
@@ -309,10 +276,10 @@ export class Lexer
 
             if (token.value === 'REM')
             {
-                return this.skipComment();
+                this.skipComment();
             }
 
-            return convertLogicalOperator(token);
+            return token;
         }
 
         if (isPunctuation(char))
@@ -333,7 +300,21 @@ export class Lexer
             };
         }
 
-        this.throwError(`Cannot handle character : "${char}"`);
+        throwError(`Lexer error : Cannot handle character : "${char}"`);
+    }
+
+
+
+    private analyse(): Array<Token>
+    {
+        while (true)
+        {
+            const T = this.readNext();
+            this.tokenList.push(T);
+            if (T.type === 'spec' && T.value === 'ENDOFSTREAM') break;
+        }
+
+        return this.tokenList;
     }
 
 
@@ -343,7 +324,7 @@ export class Lexer
      */
     public peekBefore(): Token | null
     {
-        return this.tokenList[this.tokenList.length - 2] ?? null;
+        return this.tokenList[this.tokenPos - 1] ?? null;
     }
 
     /**
@@ -351,34 +332,27 @@ export class Lexer
      */
     public peek(): Token | null
     {
-        return this.tokenList[this.tokenList.length - 1] ?? null;
+        return this.tokenList[this.tokenPos] ?? null;
     }
 
-    public next(): Token
+    /**
+     * Peek at the token after current.
+     */
+    public peekAfter(): Token | null
     {
-        let token = this.readNext();
-        this.tokenList.push(token);
-
-        return token;
+        return this.tokenList[this.tokenPos + 1] ?? null;
     }
+
+
+    public next(): Token | null
+    {
+        this.tokenPos++;
+        return this.peek();
+    }
+
 
     public isEndOfStream(): boolean
     {
-        const __lastToken = this.peek();
-        if (__lastToken === null) return false;
-
-        return __lastToken.type === 'spec' && __lastToken.value === 'ENDOFSTREAM';
-    }
-
-
-    public analyse(): Array<Token>
-    {
-        do
-        {
-            this.tokenList.push( this.readNext() );
-        }
-        while (!this.isEndOfStream())
-
-        return this.tokenList;
+        return this.peek() === null;
     }
 }

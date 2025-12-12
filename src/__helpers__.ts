@@ -1,5 +1,71 @@
-// @ts-ignore
-import { BASICConditionOperators, BASICKeywords, BASICOperators, BASICStatements, binTokens } from './__constants__.ts';
+export const BASICStatements = [
+    'LET',
+    'READ',
+    'DATA',
+    'PRINT',
+    'GOTO',
+    'IF',
+    'FOR',
+    'NEXT',
+    'END',
+    'STOP',
+    'DEF',
+    'GOSUB',
+    'RETURN',
+    'DIM',
+    'REM',
+];
+
+export const BASICKeywords = [ ...BASICStatements, 'THEN', 'TO', 'STEP', 'FN', ];
+
+// manual 2.2 and 3.3
+export const BASICFunctions = [ 'SIN', 'COS', 'TAN', 'ATN', 'EXP', 'ABS', 'LOG', 'SQR', 'INT', 'RND', ];
+
+export const BASICOperators = [ '+', '-', '*', '/', '^', ];
+
+export const BASICConditionOperators = [ '<', '>', '=', '<=', '>=', '<>', ];
+
+/** Do not use for direct comparison. */
+export const binTokens = {
+    parenOpen : {
+        type : 'punc',
+        value : '(',
+    } as PuncToken,
+    parenClose : {
+        type : 'punc',
+        value : ')',
+    } as PuncToken,
+    plus : {
+        type : 'oper',
+        value : '+',
+    } as OperToken,
+    minus : {
+        type : 'oper',
+        value : '-',
+    } as OperToken,
+    star : {
+        type : 'oper',
+        value : '*',
+    } as OperToken,
+    slash : {
+        type : 'oper',
+        value : '/',
+    } as OperToken,
+    caret : {
+        type : 'oper',
+        value : '^',
+    } as OperToken,
+} as const;
+
+
+
+/* */
+
+export function throwError(message: string): never
+{
+    console.error(message);
+    process.exit(0);
+}
 
 
 /* test functions */
@@ -17,6 +83,11 @@ export function isKeywordStart(char: string): boolean
 export function isKeyword(s: string): boolean
 {
     return BASICKeywords.includes(s);
+}
+
+export function isFunction(s: string): boolean
+{
+    return BASICFunctions.includes(s);
 }
 
 export function isDigit(char: string): boolean
@@ -79,21 +150,6 @@ export function doesContainBinary(list: Token[]): boolean
 }
 
 
-
-export function convertLogicalOperator(token: Token): Token
-{
-    switch (token.value)
-    {
-        case 'EQU': return { type : 'oper', value : '=', };
-        case 'LSS': return { type : 'oper', value : '<', };
-        case 'GRT': return { type : 'oper', value : '>', };
-        case 'LQU': return { type : 'oper', value : '<=', };
-        case 'GQU': return { type : 'oper', value : '>=', };
-        case 'NQU': return { type : 'oper', value : '<>', };
-
-        default: return token;
-    }
-}
 
 export function stringifyTokens(input: Token | Token[], separator?: string): string
 {

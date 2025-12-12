@@ -31,7 +31,7 @@ type SpecToken = {
 
 
 
-type Node = StrNode | __ExprNode | AsgnNode;
+type Node = StrNode | __ExprNode | AsgnNode | FuncNode;
 
 type NumNode = {
     type: 'NUMBER';
@@ -56,6 +56,12 @@ type AsgnNode = {
     type: 'ASSIGN';
     variable: VarNode;
     expression: __ExprNode;
+};
+type FuncNode = { // TO-DO
+    type: 'FUNCCALL';
+    name: string;
+    argument: __ExprNode;
+    action: any;
 };
 
 

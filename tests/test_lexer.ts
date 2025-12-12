@@ -24,5 +24,4 @@ const test3 = `10READA1,A2
 
 
 let lex = new Lexer(test2);
-
-console.log(lex.analyse());
+console.log(lex.processedTokens);
