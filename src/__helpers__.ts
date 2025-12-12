@@ -1,5 +1,5 @@
 // @ts-ignore
-import { BASICConditionOperators, BASICKeywords, BASICOperators, BASICStatements, puncTokens } from './__constants__.ts';
+import { BASICConditionOperators, BASICKeywords, BASICOperators, BASICStatements, binTokens } from './__constants__.ts';
 
 
 /* test functions */
@@ -125,7 +125,7 @@ export function parenthesizeExpression(input: Token[]): Token[]
     //
 
     let __return: Token[] = [];
-    __return.push( ...new Array(4).fill(puncTokens.parenOpen) );
+    __return.push( ...new Array(4).fill(binTokens.parenOpen) );
 
     for (let i = 0; i !== input.length; i++)
     {
@@ -135,38 +135,38 @@ export function parenthesizeExpression(input: Token[]): Token[]
         {
             case '(':
             {
-                __return.push( ...new Array(4).fill(puncTokens.parenOpen) );
+                __return.push( ...new Array(4).fill(binTokens.parenOpen) );
                 continue;
             }
             case ')':
             {
-                __return.push( ...new Array(4).fill(puncTokens.parenClose) );
+                __return.push( ...new Array(4).fill(binTokens.parenClose) );
                 continue;
             }
             case '^':
             {
                 __return.push(
-                    puncTokens.parenClose,
-                    puncTokens.caret,
-                    puncTokens.parenOpen
+                    binTokens.parenClose,
+                    binTokens.caret,
+                    binTokens.parenOpen
                 );
                 continue;
             }
             case '*':
             {
                 __return.push(
-                    ...new Array(2).fill(puncTokens.parenClose),
-                    puncTokens.star,
-                    ...new Array(2).fill(puncTokens.parenOpen)
+                    ...new Array(2).fill(binTokens.parenClose),
+                    binTokens.star,
+                    ...new Array(2).fill(binTokens.parenOpen)
                 );
                 continue;
             }
             case '/':
             {
                 __return.push(
-                    ...new Array(2).fill(puncTokens.parenClose),
-                    puncTokens.slash,
-                    ...new Array(2).fill(puncTokens.parenOpen)
+                    ...new Array(2).fill(binTokens.parenClose),
+                    binTokens.slash,
+                    ...new Array(2).fill(binTokens.parenOpen)
                 );
                 continue;
             }
@@ -177,14 +177,14 @@ export function parenthesizeExpression(input: Token[]): Token[]
                 // unary check: either first or had an operator expecting secondary argument
                 if (i === 0 || (prevT.type === 'punc' && [ ...BASICOperators, '(' ].includes(prevT.value)))
                 {
-                    __return.push(puncTokens.plus);
+                    __return.push(binTokens.plus);
                 }
                 else
                 {
                     __return.push(
-                        ...new Array(3).fill(puncTokens.parenClose),
-                        puncTokens.plus,
-                        ...new Array(3).fill(puncTokens.parenOpen)
+                        ...new Array(3).fill(binTokens.parenClose),
+                        binTokens.plus,
+                        ...new Array(3).fill(binTokens.parenOpen)
                     );
                 }
 
@@ -196,14 +196,14 @@ export function parenthesizeExpression(input: Token[]): Token[]
 
                 if (i === 0 || (prevT.type === 'punc' && [ ...BASICOperators, '(' ].includes(prevT.value)))
                 {
-                    __return.push(puncTokens.minus);
+                    __return.push(binTokens.minus);
                 }
                 else
                 {
                     __return.push(
-                        ...new Array(3).fill(puncTokens.parenClose),
-                        puncTokens.minus,
-                        ...new Array(3).fill(puncTokens.parenOpen)
+                        ...new Array(3).fill(binTokens.parenClose),
+                        binTokens.minus,
+                        ...new Array(3).fill(binTokens.parenOpen)
                     );
                 }
 
@@ -214,7 +214,7 @@ export function parenthesizeExpression(input: Token[]): Token[]
         __return.push(T);
     }
 
-    __return.push( ...new Array(4).fill(puncTokens.parenClose) );
+    __return.push( ...new Array(4).fill(binTokens.parenClose) );
 
     return __return;
 }
@@ -227,12 +227,12 @@ export function readParenthesis(expr: Token[]): Token[]
 
     for (const T of expr)
     {
-        if (T.value === puncTokens.parenOpen.value)
+        if (T.value === binTokens.parenOpen.value)
         {
             depth++;
             if (depth === 1) continue;
         }
-        else if (T.value === puncTokens.parenClose.value && depth > 0)
+        else if (T.value === binTokens.parenClose.value && depth > 0)
         {
             depth--;
             if (depth === 0) break;
@@ -248,7 +248,64 @@ export function readParenthesis(expr: Token[]): Token[]
     return __return;
 }
 
-export function parseParenthesizedExpression(expr: Token[])
+/** If operator found. */
+export type __preBinNodeOk = {
+    operator: string;
+    left: Token[];
+    right: Token[];
+}
+/** if operator not found. */
+export type __preBinNodeNof = {
+    operator: null;
+    expression: Token[];
+}
+export type __preBinNode = __preBinNodeOk | __preBinNodeNof;
+
+export function parseParenthesizedBinaryExpression(expr: Token[]): __preBinNode
 {
-    // TO-DO
+    let oper: Token | null = null;
+    let left: Token[] = [];
+    let right: Token[] = [];
+
+    let depth = 0;
+    let isLeftRead = false;
+
+    for (const T of expr)
+    {
+        if (isLeftRead)
+        {
+            right.push(T);
+            continue;
+        }
+
+        if (T.type === 'oper' && depth === 0)
+        {
+            oper = T;
+            isLeftRead = true;
+            continue;
+        }
+        else
+        {
+            left.push(T);
+            if (T.value === '(') depth++;
+            if (T.value === ')' && depth > 0) depth--;
+            continue;
+        }
+    }
+
+    if (oper === null)
+    {
+        return {
+            operator : null,
+            expression : left,
+        };
+    }
+    else
+    {
+        return {
+            operator : oper.value,
+            left : left,
+            right : right,
+        };
+    }
 }

@@ -117,7 +117,7 @@ export class Lexer
      */
     public tokenList: Array<Token>;
 
-    public throwError: (message: string) => never;
+    public throwError: typeof this.charStream.throwError;
 
 
     constructor(s: string)
@@ -262,7 +262,6 @@ export class Lexer
     }
 
 
-
     private readNext(): Token
     {
         // skip all whitespaces
@@ -355,20 +354,13 @@ export class Lexer
         return this.tokenList[this.tokenList.length - 1] ?? null;
     }
 
-
-    public next(): Token | null
+    public next(): Token
     {
-        if (this.isEndOfStream())
-        {
-            return null;
-        }
-
         let token = this.readNext();
         this.tokenList.push(token);
 
         return token;
     }
-
 
     public isEndOfStream(): boolean
     {

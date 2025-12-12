@@ -1,5 +1,11 @@
 // @ts-ignore
-import { parenthesizeExpression } from './__helpers__.ts';
+import { BASICStatements } from './__constants__.ts';
+import {
+    parenthesizeExpression,
+    parseParenthesizedBinaryExpression,
+    readParenthesis
+// @ts-ignore
+} from './__helpers__.ts';
 // @ts-ignore
 import { Lexer } from './Lexer.ts';
 
@@ -8,7 +14,7 @@ export class Parser
 {
     private lexer: Lexer;
 
-    public throwError: (message: string) => never;
+    public throwError: typeof this.lexer.throwError;
 
 
     constructor(lexer: Lexer)
@@ -23,12 +29,11 @@ export class Parser
      */
     private readWhile(predicate: (token: Token, readList: Token[]) => boolean): Token[]
     {
-        let tList: Token[] = [];
+        let tList: Array<Token> = [];
 
-        while (!this.lexer.isEndOfStream() && this.lexer.peek() !== null && predicate(this.lexer.peek()!, tList))
+        while (!this.lexer.isEndOfStream() && predicate(this.lexer.next(), tList))
         {
             tList.push(this.lexer.peek()!);
-            this.lexer.next();
         }
 
         return tList;
@@ -40,7 +45,7 @@ export class Parser
         const T = this.lexer.next();
         if (T === null || T.type !== 'num')
         {
-            this.throwError(`Expected a number.`);
+            this.throwError(`Expected a number (reading "${T.value}").`);
         }
 
         return {
@@ -54,7 +59,7 @@ export class Parser
         const T = this.lexer.next();
         if (T === null || T.type !== 'str')
         {
-            this.throwError(`Expected a string.`);
+            this.throwError(`Expected a string (reading "${T.value}").`);
         }
 
         return {
@@ -63,38 +68,117 @@ export class Parser
         };
     }
 
-    private parseBinary()//: BinNode
+    private parseVariable(): VarNode
     {
-        //
-    }
-
-    private readExpression()
-    {
-        let expr = this.readWhile((T, tl) => T.type === 'spec' && T.value === 'LINEBREAK');
-        let parenthesized = parenthesizeExpression(expr);
-    }
-
-
-    /*
-    private parseStatement()
-    {
-        const __lineNumber = this.lexer.next();
-        if (__lineNumber === null) return;
-        const __statement = this.lexer.next();
-        if (__statement === null) return;
-
-        if (__statement.type !== 'keyw')
+        const T = this.lexer.next();
+        if (T === null || T.type !== 'var')
         {
-            return;
+            this.throwError(`Expected a variable name (reading "${T.type}").`);
         }
 
-        let __value: any;
+        return {
+            type : 'VARIABLE',
+            name : T.value,
+        };
+    }
+
+    private parseExpression(parenthesizedExpr: Token[]): __ExprNode
+    {
+        if (parenthesizedExpr[0].value === '(')
+        {
+            // check if there is another binary expression on the same level
+            let binPreParsed = parseParenthesizedBinaryExpression(parenthesizedExpr);
+            if (binPreParsed.operator !== null)
+            {
+                return {
+                    type : 'BINARY',
+                    operator : binPreParsed.operator,
+                    left : this.parseExpression(binPreParsed.left),
+                    right : this.parseExpression(binPreParsed.right),
+                };
+            }
+
+            let read = readParenthesis(parenthesizedExpr);
+            let binParsed = parseParenthesizedBinaryExpression(read);
+
+            if (binParsed.operator === null)
+            {
+                return this.parseExpression(binParsed.expression);
+            }
+            else
+            {
+                return {
+                    type : 'BINARY',
+                    operator : binParsed.operator,
+                    left : this.parseExpression(binParsed.left),
+                    right : this.parseExpression(binParsed.right),
+                };
+            }
+        }
+        else
+        {
+            if (parenthesizedExpr[0].type === 'num')
+            {
+                return {
+                    type : 'NUMBER',
+                    value : parenthesizedExpr[0].value,
+                };
+            }
+            else if (parenthesizedExpr[0].type === 'var')
+            {
+                return {
+                    type : 'VARIABLE',
+                    name : parenthesizedExpr[0].value,
+                };
+            }
+            else
+            {
+                this.throwError(`Cannot parse expression : unexpected token (reading "${parenthesizedExpr[0].type}").`);
+            }
+        }
+    }
+
+    private parseAssign(): AsgnNode
+    {
+        const variable = this.parseVariable();
+
+        const operator = this.lexer.next();
+        if (operator.type !== 'oper' || operator.value !== '=')
+        {
+            this.throwError(`Expected an assignment operator ("=") (reading "${operator.type}").`);
+        }
+
+        const expression = this.readWhile((T, tl) => T.type !== 'spec' || T.value !== 'LINEBREAK');
+        const parenthesizedExpr = parenthesizeExpression(expression);
+
+        return {
+            type : 'ASSIGN',
+            variable : variable,
+            expression : this.parseExpression(parenthesizedExpr),
+        };
+    }
+
+
+    private parseStatement(): ASTStatement
+    {
+        const __lineNumber = this.parseNumber();
+
+        const __statement = this.lexer.next();
+        if (__statement.type !== 'keyw' || !BASICStatements.includes(__statement.value))
+        {
+            this.throwError(`Expected a statement (reading "${__statement.value}").`);
+        }
+
 
         switch (__statement.value)
         {
             case 'LET':
             {
-                __value = this.parseLETStatement();
+                return {
+                    line_number : __lineNumber.value,
+                    statement : 'LET',
+                    value : this.parseAssign(),
+                };
             }
 
             default:
@@ -104,12 +188,20 @@ export class Parser
         }
     }
 
-    private parseLETStatement()
+
+
+    public parse(): ASTRoot
     {
-        //let rest = this.readWhile((t) => t.type === 'spec' && t.value === 'LINEBREAK');
-        const __variable = this.lexer.next();
-        const __operator = this.lexer.next();
-        const __expression = this.lexer.next();
+        let __return: Array<ASTStatement> = [];
+
+        while (!this.lexer.isEndOfStream())
+        {
+            __return.push( this.parseStatement() );
+        }
+
+        return {
+            type : 'PROGRAM',
+            value : __return,
+        };
     }
-    */
 }

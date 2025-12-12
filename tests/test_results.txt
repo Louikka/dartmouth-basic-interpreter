@@ -1,0 +1,20 @@
+{
+  "type": "PROGRAM",
+  "value": [
+    {
+      "line_number": 10,
+      "statement": "LET",
+      "value": {
+        "type": "ASSIGN",
+        "variable": {
+          "type": "VARIABLE",
+          "name": "D"
+        },
+        "expression": {
+          "type": "NUMBER",
+          "value": 15
+        }
+      }
+    }
+  ]
+}

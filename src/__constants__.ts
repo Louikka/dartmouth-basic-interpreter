@@ -59,7 +59,7 @@ export type BASICCondition = typeof BASICConditionOperators[any];
 
 
 /** Do not use for direct comparison. */
-export const puncTokens = {
+export const binTokens = {
     parenOpen : {
         type : 'punc',
         value : '(',
@@ -69,23 +69,23 @@ export const puncTokens = {
         value : ')',
     } as PuncToken,
     plus : {
-        type : 'punc',
+        type : 'oper',
         value : '+',
-    } as PuncToken,
+    } as OperToken,
     minus : {
-        type : 'punc',
+        type : 'oper',
         value : '-',
-    } as PuncToken,
+    } as OperToken,
     star : {
-        type : 'punc',
+        type : 'oper',
         value : '*',
-    } as PuncToken,
+    } as OperToken,
     slash : {
-        type : 'punc',
+        type : 'oper',
         value : '/',
-    } as PuncToken,
+    } as OperToken,
     caret : {
-        type : 'punc',
+        type : 'oper',
         value : '^',
-    } as PuncToken,
+    } as OperToken,
 } as const;

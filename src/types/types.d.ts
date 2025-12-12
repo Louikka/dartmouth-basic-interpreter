@@ -31,7 +31,7 @@ type SpecToken = {
 
 
 
-type Node = NumNode | StrNode | VarNode | BinNode | AsgnNode;
+type Node = StrNode | __ExprNode | AsgnNode;
 
 type NumNode = {
     type: 'NUMBER';
@@ -45,20 +45,17 @@ type VarNode = {
     type: 'VARIABLE';
     name: string;
 };
+type __ExprNode = NumNode | VarNode | BinNode;
 type BinNode = {
     type: 'BINARY';
     operator: BASICOperator;
-    left: NumNode | VarNode | BinNode;
-    right: NumNode | VarNode | BinNode;
-};
-type ExprNode = { // ???
-    type: 'EXPRESSION';
-    value: NumNode | VarNode | BinNode;
+    left: __ExprNode;
+    right: __ExprNode;
 };
 type AsgnNode = {
     type: 'ASSIGN';
     variable: VarNode;
-    value: ExprNode;
+    expression: __ExprNode;
 };
 
 
