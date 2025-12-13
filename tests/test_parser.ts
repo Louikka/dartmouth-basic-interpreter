@@ -5,12 +5,18 @@ import { Parser } from '../src/Parser.ts';
 
 
 
-const test = `10LETD=15`;
+const test = `
+10LETD=15 * 4 + COS(22^7) - X(2 + 4, 5)
+`;
 
 
-let lex = new Lexer(test);
-let parser = new Parser(lex);
+let lexer = new Lexer(test);
+let l = lexer.analyse();
 
+console.log(l);
+
+let parser = new Parser(l);
+parser.devlog = true;
 let p = parser.parse();
 
 fs.writeFile('test_results.txt', JSON.stringify(p, null, 2), err =>

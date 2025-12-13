@@ -16,12 +16,15 @@ const test2 = (await fs.readFile('./test.bas', 'utf8').catch((err) =>
     process.exit();
 })).toUpperCase();
 
-const test3 = `10READA1,A2
+const test3 = `
+10READA1,A2
 15LETD=A1*A2
 65PRINTD
 70DATA1,2
-90END`;
+77REMAOBABABOABABOABAOBAOB
+90END
+`;
 
 
-let lex = new Lexer(test2);
-console.log(lex.processedTokens);
+let lex = new Lexer(test3);
+console.log(lex.analyse());

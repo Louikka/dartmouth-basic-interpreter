@@ -11,8 +11,65 @@
           "name": "D"
         },
         "expression": {
-          "type": "NUMBER",
-          "value": 15
+          "type": "BINARY",
+          "operator": "+",
+          "left": {
+            "type": "BINARY",
+            "operator": "*",
+            "left": {
+              "type": "NUMBER",
+              "value": 15
+            },
+            "right": {
+              "type": "NUMBER",
+              "value": 4
+            }
+          },
+          "right": {
+            "type": "BINARY",
+            "operator": "-",
+            "left": {
+              "type": "FUNCCALL",
+              "name": "COS",
+              "argument": {
+                "type": "BINARY",
+                "operator": "^",
+                "left": {
+                  "type": "NUMBER",
+                  "value": 22
+                },
+                "right": {
+                  "type": "NUMBER",
+                  "value": 7
+                }
+              }
+            },
+            "right": {
+              "type": "TABLEVAR",
+              "name": {
+                "type": "VARIABLE",
+                "name": "X"
+              },
+              "subscripts": {
+                "sub1": {
+                  "type": "BINARY",
+                  "operator": "+",
+                  "left": {
+                    "type": "NUMBER",
+                    "value": 2
+                  },
+                  "right": {
+                    "type": "NUMBER",
+                    "value": 4
+                  }
+                },
+                "sub2": {
+                  "type": "NUMBER",
+                  "value": 5
+                }
+              }
+            }
+          }
         }
       }
     }

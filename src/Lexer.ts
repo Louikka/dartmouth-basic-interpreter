@@ -1,6 +1,6 @@
 import {
-    isDigit, isKeyword,
-    isKeywordStart,
+    isDigit, isFunction,
+    isKeyword, isKeywordStart,
     isOperator,
     isPunctuation,
     isVar, isVarStart,
@@ -10,47 +10,45 @@ import {
 } from './__helpers__.ts';
 
 
-export class __CharStream
+// Exact implementation of __Streamer class from __helpers__.ts,
+// but tweaked a little bit to match needs of lexer.
+class __CharStream
 {
-    private inputString: string;
+    private input: string;
 
     public get streamLength(): number
     {
-        return this.inputString.length;
+        return this.input.length;
     }
 
     private pos: number;
 
+    public get currentPosition(): number
+    {
+        return this.pos;
+    }
+
 
     constructor(s: string)
     {
-        this.inputString = s;
+        this.input = s;
         this.pos = 0;
     }
 
 
-    /**
-     * Peek at the character before current.
-     */
     public peekBefore(): string
     {
-        return this.inputString.charAt(this.pos - 1);
+        return this.input.charAt(this.pos - 1);
     }
 
-    /**
-     * Peek at the current character in stream.
-     */
     public peek(): string
     {
-        return this.inputString.charAt(this.pos);
+        return this.input.charAt(this.pos);
     }
 
-    /**
-     * Peek at the character after current.
-     */
     public peekAfter(): string
     {
-        return this.inputString.charAt(this.pos + 1);
+        return this.input.charAt(this.pos + 1);
     }
 
 
@@ -68,38 +66,16 @@ export class __CharStream
 }
 
 
-
 export class Lexer
 {
-    private readonly inputString: string;
-    private charStream: __CharStream;
-
-    public get originalInput(): string
-    {
-        return this.inputString;
-    }
-
-    /**
-     * List of currently precessed tokens.
-     */
-    private tokenList: Array<Token>;
-
-    public get processedTokens(): Array<Token>
-    {
-        return this.tokenList;
-    }
-
-    private tokenPos: number;
-
-
     constructor(s: string)
     {
-        this.inputString = s.trim().toUpperCase();
-        this.charStream = new __CharStream(this.inputString);
-        this.tokenList = [];
-        this.analyse();
-        this.tokenPos = 0;
+        this.charStream = new __CharStream(s.trim().toUpperCase());
     }
+
+
+
+    private charStream: __CharStream;
 
 
     /**
@@ -191,21 +167,6 @@ export class Lexer
         };
     }
 
-    private readKeyword(): KeywToken
-    {
-        let keyw = this.readWhile((char, before, after, readString) =>
-        {
-            if (isKeyword(readString)) return false;
-
-            return /[A-Z]/i.test(char);
-        });
-
-        return {
-            type : 'keyw',
-            value : keyw,
-        };
-    }
-
     private readIdentifier(): VarToken
     {
         let id = this.readWhile((char, before, after, readString) =>
@@ -223,13 +184,42 @@ export class Lexer
         };
     }
 
+    private readKeyword(): KeywToken | FuncToken
+    {
+        let keyw = this.readWhile((char, before, after, readString) =>
+        {
+            if (isKeyword(readString)) return false;
+
+            return /[A-Z]/i.test(char);
+        });
+
+        if (isKeyword(keyw))
+        {
+            return {
+                type : 'keyw',
+                value : keyw,
+            };
+        }
+        else if (isFunction(keyw))
+        {
+            return {
+                type : 'func',
+                value : keyw,
+            }
+        }
+        else
+        {
+            throwError(`Lexer error : Undefined keyword : "${keyw}".`);
+        }
+    }
+
     private skipComment(): string
     {
         return this.readWhile((char, before, after, readString) => char !== '\n');
     }
 
 
-    private readNext(): Token
+    private readNextToken(): Token
     {
         // skip all whitespaces
         this.readWhile((char, before, after, readString) => isWhitespace(char));
@@ -304,55 +294,17 @@ export class Lexer
     }
 
 
-
-    private analyse(): Array<Token>
+    public analyse(): Array<Token>
     {
+        let tokenList: Array<Token> = [];
+
         while (true)
         {
-            const T = this.readNext();
-            this.tokenList.push(T);
-            if (T.type === 'spec' && T.value === 'ENDOFSTREAM') break;
+            const token = this.readNextToken();
+            tokenList.push(token);
+            if (token.type === 'spec' && token.value === 'ENDOFSTREAM') break;
         }
 
-        return this.tokenList;
-    }
-
-
-
-    /**
-     * Peek at the token before current.
-     */
-    public peekBefore(): Token | null
-    {
-        return this.tokenList[this.tokenPos - 1] ?? null;
-    }
-
-    /**
-     * Peek at the current token in stream.
-     */
-    public peek(): Token | null
-    {
-        return this.tokenList[this.tokenPos] ?? null;
-    }
-
-    /**
-     * Peek at the token after current.
-     */
-    public peekAfter(): Token | null
-    {
-        return this.tokenList[this.tokenPos + 1] ?? null;
-    }
-
-
-    public next(): Token | null
-    {
-        this.tokenPos++;
-        return this.peek();
-    }
-
-
-    public isEndOfStream(): boolean
-    {
-        return this.peek() === null;
+        return tokenList;
     }
 }

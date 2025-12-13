@@ -1,4 +1,4 @@
-type Token = PuncToken | NumToken | StrToken | KeywToken | VarToken | OperToken | SpecToken;
+type Token = PuncToken | NumToken | StrToken | KeywToken | VarToken | FuncToken | OperToken | SpecToken;
 
 type PuncToken = {
     type: 'punc';
@@ -12,12 +12,16 @@ type StrToken = {
     type: 'str';
     value: string;
 };
+type VarToken = {
+    type: 'var';
+    value: string;
+};
 type KeywToken = {
     type: 'keyw';
     value: string;
 };
-type VarToken = {
-    type: 'var';
+type FuncToken = {
+    type: 'func';
     value: string;
 };
 type OperToken = {
@@ -31,7 +35,7 @@ type SpecToken = {
 
 
 
-type Node = StrNode | __ExprNode | AsgnNode | FuncNode;
+type Node = StrNode | ExprNode | AsgnNode;
 
 type NumNode = {
     type: 'NUMBER';
@@ -45,23 +49,41 @@ type VarNode = {
     type: 'VARIABLE';
     name: string;
 };
-type __ExprNode = NumNode | VarNode | BinNode;
+type ListNode = {
+    type: 'LISTVAR';
+    name: VarNode;
+    subscript: ExprNode;
+};
+type TableNode = {
+    type: 'TABLEVAR';
+    name: VarNode;
+    subscripts: {
+        sub1: ExprNode;
+        sub2: ExprNode;
+    };
+};
+type FuncNode = DefFuncNode | UserFuncNode;
+type DefFuncNode = {
+    type: 'FUNCCALL';
+    name: string;
+    argument: ExprNode; // all BASIC function can have only one parameter
+};
+type UserFuncNode = {
+    type: 'UFUNCCALL';
+    name: VarNode;
+    argument: ExprNode;
+};
+type ExprNode = NumNode | VarNode | ListNode | TableNode | BinNode | FuncNode;
 type BinNode = {
     type: 'BINARY';
     operator: BASICOperator;
-    left: __ExprNode;
-    right: __ExprNode;
+    left: ExprNode;
+    right: ExprNode;
 };
 type AsgnNode = {
     type: 'ASSIGN';
     variable: VarNode;
-    expression: __ExprNode;
-};
-type FuncNode = { // TO-DO
-    type: 'FUNCCALL';
-    name: string;
-    argument: __ExprNode;
-    action: any;
+    expression: ExprNode;
 };
 
 
