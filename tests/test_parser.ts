@@ -4,9 +4,14 @@ import { Lexer } from '../src/Lexer.ts';
 import { Parser } from '../src/Parser.ts';
 
 
-
 const test = `
-10LETD=15 * 4 + COS(22^7) - X(2 + 4, 5)
+10 LET A = 12
+20 READ B, C, D
+998 DATA 11, 4, 846.21
+30REMabobabaobsdbsjdjshdjs45f64d5f
+40STOP
+999END
+50 NEXT X
 `;
 
 
@@ -16,7 +21,7 @@ let l = lexer.analyse();
 console.log(l);
 
 let parser = new Parser(l);
-parser.devlog = true;
+parser.isDevLogging = true;
 let p = parser.parse();
 
 fs.writeFile('test_results.txt', JSON.stringify(p, null, 2), err =>

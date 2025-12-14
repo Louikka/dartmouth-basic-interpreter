@@ -187,23 +187,6 @@ export function isNumeric(str: string): boolean
     return !isNaN(+str) && !isNaN(parseFloat(str));
 }
 
-export function doesContainBinary(list: Token[]): boolean
-{
-    if (!list.some((T) => T.type === 'oper'))
-    {
-        return false;
-    }
-    else
-    {
-        if (list.filter((T) => T.type === 'oper').length === 1 && list[0].type === 'oper')
-        {
-            return false;
-        }
-
-        return true;
-    }
-}
-
 
 
 export function stringifyTokens(input: Token | Token[], separator?: string): string

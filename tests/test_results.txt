@@ -8,67 +8,76 @@
         "type": "ASSIGN",
         "variable": {
           "type": "VARIABLE",
-          "name": "D"
+          "name": "A"
         },
         "expression": {
-          "type": "BINARY",
-          "operator": "+",
-          "left": {
-            "type": "BINARY",
-            "operator": "*",
-            "left": {
-              "type": "NUMBER",
-              "value": 15
-            },
-            "right": {
-              "type": "NUMBER",
-              "value": 4
-            }
+          "type": "NUMBER",
+          "value": 12
+        }
+      }
+    },
+    {
+      "line_number": 20,
+      "statement": "READ",
+      "value": [
+        {
+          "type": "VARIABLE",
+          "name": "B"
+        },
+        {
+          "type": "VARIABLE",
+          "name": "C"
+        },
+        {
+          "type": "VARIABLE",
+          "name": "D"
+        }
+      ]
+    },
+    {
+      "line_number": 998,
+      "statement": "DATA",
+      "value": [
+        {
+          "type": "NUMBER",
+          "value": 11
+        },
+        {
+          "type": "NUMBER",
+          "value": 4
+        },
+        {
+          "type": "NUMBER",
+          "value": 846.21
+        }
+      ]
+    },
+    {
+      "line_number": 30,
+      "statement": "REM"
+    },
+    {
+      "line_number": 40,
+      "statement": "STOP"
+    },
+    {
+      "line_number": 999,
+      "statement": "END"
+    },
+    {
+      "line_number": 50,
+      "statement": "NEXT",
+      "value": {
+        "type": "TABLEVAR",
+        "name": "X",
+        "subscripts": {
+          "sub1": {
+            "type": "NUMBER",
+            "value": 12
           },
-          "right": {
-            "type": "BINARY",
-            "operator": "-",
-            "left": {
-              "type": "FUNCCALL",
-              "name": "COS",
-              "argument": {
-                "type": "BINARY",
-                "operator": "^",
-                "left": {
-                  "type": "NUMBER",
-                  "value": 22
-                },
-                "right": {
-                  "type": "NUMBER",
-                  "value": 7
-                }
-              }
-            },
-            "right": {
-              "type": "TABLEVAR",
-              "name": {
-                "type": "VARIABLE",
-                "name": "X"
-              },
-              "subscripts": {
-                "sub1": {
-                  "type": "BINARY",
-                  "operator": "+",
-                  "left": {
-                    "type": "NUMBER",
-                    "value": 2
-                  },
-                  "right": {
-                    "type": "NUMBER",
-                    "value": 4
-                  }
-                },
-                "sub2": {
-                  "type": "NUMBER",
-                  "value": 5
-                }
-              }
-            }
+          "sub2": {
+            "type": "NUMBER",
+            "value": 4
           }
         }
       }

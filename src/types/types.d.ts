@@ -45,18 +45,19 @@ type StrNode = {
     type: 'STRING';
     value: string;
 };
-type VarNode = {
+type VarNode = UnsubVarNode | ListNode | TableNode;
+type UnsubVarNode = {
     type: 'VARIABLE';
     name: string;
 };
 type ListNode = {
     type: 'LISTVAR';
-    name: VarNode;
+    name: string;
     subscript: ExprNode;
 };
 type TableNode = {
     type: 'TABLEVAR';
-    name: VarNode;
+    name: string;
     subscripts: {
         sub1: ExprNode;
         sub2: ExprNode;
@@ -88,7 +89,7 @@ type AsgnNode = {
 
 
 
-type ASTStatement = LETStatement | READStatement | DATAStatement | PRINTStatement | GOTOStatement | IFTHENStatement | FORStatement | NEXTStatement | ENDStatement | STOPStatement | DEFStatement | GOSUBStatement | RETURNStatement | DIMStatement;
+type ASTStatement = LETStatement | READStatement | DATAStatement | PRINTStatement | GOTOStatement | IFTHENStatement | FORStatement | NEXTStatement | ENDStatement | STOPStatement | DEFStatement | GOSUBStatement | RETURNStatement | DIMStatement | REMStatement;
 
 type LETStatement = {
     line_number: number;

@@ -3,7 +3,6 @@ import {
     BASICOperators,
     BASICStatements,
     binTokens,
-    stringifyTokens,
     throwError
 // @ts-ignore
 } from './__helpers__.ts';
@@ -26,13 +25,13 @@ export class Parser
 
 
     /** Enable or disable developer logging to console. */
-    public devlog = false;
+    public isDevLogging = false;
 
     private tokenStream: __Streamer<Token>;
 
 
     /**
-     * @param predicate test function.
+     * @param predicate test function. Reads while returns `true`.
      */
     private readWhile(predicate: (token: Token, readList: Token[]) => boolean): Array<Token>
     {
@@ -47,49 +46,128 @@ export class Parser
     }
 
 
-    private parseNumber(token?: Token): NumNode
+    private readParentheses(): Token[]
     {
-        const t = token ?? this.tokenStream.peek();
-        if (t === null || t.type !== 'num')
+        const __currToken = this.tokenStream.peek();
+        if (__currToken === null || __currToken.value !== '(')
         {
-            if (this.devlog) console.log(t);
+            if (this.isDevLogging) console.log(__currToken);
+            throwError(`Parser error : Expected a parenthesis.`);
+        }
+
+        let depth = 1;
+        let __return: Token[] = [];
+
+        while (!__isLineBreakOrEOF(this.tokenStream.peek()))
+        {
+            const token = this.tokenStream.next();
+            if (token === null)
+            {
+                if (this.isDevLogging) console.log(token);
+                throwError(`Parser error : Cannot read a token.`);
+            }
+
+            if (token.value === '(')
+            {
+                depth++;
+                if (depth === 1) continue;
+            }
+            else if (token.value === ')' && depth > 0)
+            {
+                depth--;
+                if (depth === 0) break;
+            }
+
+            if (depth > 0)
+            {
+                __return.push(token);
+                continue;
+            }
+        }
+
+        this.tokenStream.next();
+
+        return __return;
+    }
+
+
+    private parseNumber(): NumNode
+    {
+        const token = this.tokenStream.peek();
+        if (token === null || token.type !== 'num')
+        {
+            if (this.isDevLogging) console.log(token);
             throwError(`Parser error : Expected a number.`);
         }
 
+        this.tokenStream.next();
+
         return {
             type : 'NUMBER',
-            value : t.value,
+            value : token.value,
         };
     }
 
-    private parseString(token?: Token): StrNode
+    private parseString(): StrNode
     {
-        const t = token ?? this.tokenStream.peek();
-        if (t === null || t.type !== 'str')
+        const token = this.tokenStream.peek();
+        if (token === null || token.type !== 'str')
         {
-            if (this.devlog) console.log(t);
+            if (this.isDevLogging) console.log(token);
             throwError(`Parser error : Expected a string.`);
         }
 
+        this.tokenStream.next();
+
         return {
             type : 'STRING',
-            value : t.value,
+            value : token.value,
         };
     }
 
-    private parseVariable(token?: Token): VarNode
+    private parseVariable(): VarNode
     {
-        const t = token ?? this.tokenStream.peek();
-        if (t === null || t.type !== 'var')
+        const token = this.tokenStream.peek();
+        if (token === null || token.type !== 'var')
         {
-            if (this.devlog) console.log(t);
+            if (this.isDevLogging) console.log(token);
             throwError(`Parser error : Expected a variable name.`);
         }
 
-        return {
-            type : 'VARIABLE',
-            name : t.value,
-        };
+        const tokenNext = this.tokenStream.next();
+
+        if (tokenNext !== null && tokenNext.value === '(')
+        {
+            let __readSubscript = this.readParentheses();
+            let __subscript = parseCommaSeparatedValues(__readSubscript);
+
+            if (__subscript.length > 1)
+            {
+                return {
+                    type : 'TABLEVAR',
+                    name : token.value,
+                    subscripts : {
+                        sub1 : this.parseExpression(__subscript[0]),
+                        sub2 : this.parseExpression(__subscript[1]),
+                    },
+                };
+            }
+            else
+            {
+                return {
+                    type : 'LISTVAR',
+                    name : token.value,
+                    subscript : this.parseExpression(__subscript[0]),
+                };
+            }
+        }
+        else
+        {
+            return {
+                type : 'VARIABLE',
+                name : token.value,
+            };
+        }
     }
 
     private parseExpression(input: Token[]): ExprNode
@@ -102,14 +180,14 @@ export class Parser
     {
         const varToken = this.parseVariable();
 
-        const operToken = this.tokenStream.next()!;
+        const operToken = this.tokenStream.peek()!;
         if (operToken === null || operToken.type !== 'oper' || operToken.value !== '=')
         {
-            if (this.devlog) console.log(operToken);
+            if (this.isDevLogging) console.log(operToken);
             throwError(`Parser error : Expected an assignment operator ("=").`);
         }
 
-        const expression = this.readWhile((t, tl) => t.type !== 'spec');
+        const expression = this.readWhile((t, tl) => !__isLineBreakOrEOF(t));
 
         return {
             type : 'ASSIGN',
@@ -120,17 +198,12 @@ export class Parser
 
     private parseStatement(): ASTStatement
     {
-        /*
-        const __t = this.tokenStream.peek();
-        if (__t !== null && __t.type === 'spec' && __t.value === 'LINEBREAK') this.tokenStream.next();
-        */
-
         const lineNumber = this.parseNumber();
 
-        const statement = this.tokenStream.next();
+        const statement = this.tokenStream.peek();
         if (statement === null || statement.type !== 'keyw' || !BASICStatements.includes(statement.value))
         {
-            if (this.devlog) console.log(statement);
+            if (this.isDevLogging) console.log(statement);
             throwError(`Parser error : Expected a statement.`);
         }
 
@@ -143,8 +216,134 @@ export class Parser
             {
                 return {
                     line_number : lineNumber.value,
-                    statement : 'LET',
+                    statement : statement.value,
                     value : this.parseAssign(),
+                };
+            }
+            case 'READ':
+            {
+                let vars = [];
+
+                while (!__isLineBreakOrEOF(this.tokenStream.peek()))
+                {
+                    vars.push(this.parseVariable());
+
+                    let isComma = this.tokenStream.peek();
+
+                    if (isComma !== null && isComma.value === ',')
+                    {
+                        this.tokenStream.next();
+                        continue;
+                    }
+                    else
+                    {
+                        break;
+                    }
+                }
+
+                return {
+                    line_number : lineNumber.value,
+                    statement : statement.value,
+                    value : vars,
+                };
+            }
+            case 'DATA':
+            {
+                let data = [];
+
+                while (!__isLineBreakOrEOF(this.tokenStream.peek()))
+                {
+                    data.push(this.parseNumber());
+
+                    let isComma = this.tokenStream.peek();
+
+                    if (isComma !== null && isComma.value === ',')
+                    {
+                        this.tokenStream.next();
+                        continue;
+                    }
+                    else
+                    {
+                        break;
+                    }
+                }
+
+                return {
+                    line_number : lineNumber.value,
+                    statement : statement.value,
+                    value : data,
+                };
+            }
+            case 'PRINT':
+            {
+                throw new Error(); // TO-DO
+            }
+            case 'GOTO':
+            {
+                return {
+                    line_number : lineNumber.value,
+                    statement : statement.value,
+                    value : this.parseNumber(),
+                };
+            }
+            case 'IF':
+            {
+                throw new Error(); // TO-DO
+            }
+            case 'FOR':
+            {
+                throw new Error(); // TO-DO
+            }
+            case 'NEXT':
+            {
+                return {
+                    line_number : lineNumber.value,
+                    statement : statement.value,
+                    value : this.parseVariable(),
+                };
+            }
+            case 'END':
+            {
+                return {
+                    line_number : lineNumber.value,
+                    statement : statement.value,
+                };
+            }
+            case 'STOP':
+            {
+                return {
+                    line_number : lineNumber.value,
+                    statement : statement.value,
+                };
+            }
+            case 'DEF':
+            {
+                throw new Error(); // TO-DO
+            }
+            case 'GOSUB':
+            {
+                return {
+                    line_number : lineNumber.value,
+                    statement : statement.value,
+                    value : this.parseNumber(),
+                };
+            }
+            case 'RETURN':
+            {
+                return {
+                    line_number : lineNumber.value,
+                    statement : statement.value,
+                };
+            }
+            case 'DIM':
+            {
+                throw new Error(); // TO-DO
+            }
+            case 'REM':
+            {
+                return {
+                    line_number : lineNumber.value,
+                    statement : statement.value,
                 };
             }
 
@@ -197,6 +396,15 @@ function parenthesizeExpression(input: Token[]): Token[]
             case ')':
             {
                 __return.push( ...new Array(4).fill(binTokens.parenClose) );
+                continue;
+            }
+            case ',':
+            {
+                __return.push(
+                    ...new Array(3).fill(binTokens.parenClose),
+                    { type : 'punc', value : ',', },
+                    ...new Array(3).fill(binTokens.parenOpen),
+                );
                 continue;
             }
             case '^':
@@ -291,7 +499,7 @@ function parseParenthesizedExpression(pExpr: Token[]): ExprNode
             };
         }
 
-        let read = readParenthesis(pExpr);
+        let read = readParenthesesFromList(pExpr);
         let binParsed = __parseParenthesizedBinaryExpression(read);
 
         if (binParsed.operator === null)
@@ -321,28 +529,28 @@ function parseParenthesizedExpression(pExpr: Token[]): ExprNode
         {
             if (pExpr[1].value === '(')
             {
-                let __readSubscript = readParenthesis(pExpr);
+                let __readSubscript = readParenthesesFromList(pExpr);
+                let __subscript = parseCommaSeparatedValues(__readSubscript);
 
-                if (__readSubscript.some((t) => t.type === 'punc' && t.value === ','))
+                if (__subscript.length > 1)
                 {
                     return {
                         type : 'TABLEVAR',
-                        name : {
-                            type : 'VARIABLE',
-                            name : pExpr[0].value,
+                        name : pExpr[0].value,
+                        subscripts : {
+                            sub1 : parseParenthesizedExpression(readParenthesesFromList(__subscript[0])),
+                            sub2 : parseParenthesizedExpression(readParenthesesFromList(__subscript[1])),
                         },
-                        subscripts : __parseTableSubscript(__readSubscript),
                     };
                 }
-
-                return {
-                    type : 'LISTVAR',
-                    name : {
-                        type : 'VARIABLE',
+                else
+                {
+                    return {
+                        type : 'LISTVAR',
                         name : pExpr[0].value,
-                    },
-                    subscript : parseParenthesizedExpression(readParenthesis(pExpr)),
-                };
+                        subscript : parseParenthesizedExpression(readParenthesesFromList(__subscript[0])),
+                    };
+                }
             }
 
             return {
@@ -355,7 +563,7 @@ function parseParenthesizedExpression(pExpr: Token[]): ExprNode
             return {
                 type : 'FUNCCALL',
                 name : pExpr[0].value,
-                argument : parseParenthesizedExpression(readParenthesis(pExpr)),
+                argument : parseParenthesizedExpression(readParenthesesFromList(pExpr)),
             };
         }
         else if (pExpr[0].type === 'keyw' && pExpr[0].value === 'FN' && pExpr[1].type === 'var')
@@ -366,7 +574,7 @@ function parseParenthesizedExpression(pExpr: Token[]): ExprNode
                     type : 'VARIABLE',
                     name : pExpr[1].value,
                 },
-                argument : parseParenthesizedExpression(readParenthesis(pExpr)),
+                argument : parseParenthesizedExpression(readParenthesesFromList(pExpr)),
             };
         }
         else
@@ -376,7 +584,7 @@ function parseParenthesizedExpression(pExpr: Token[]): ExprNode
     }
 }
 
-function readParenthesis(expr: Token[]): Token[]
+function readParenthesesFromList(expr: Token[]): Token[]
 {
     let depth = 0;
     let __return: Token[] = [];
@@ -494,4 +702,44 @@ function __parseTableSubscript(pExpr: Token[]): { sub1: ExprNode; sub2: ExprNode
         sub1 : parseParenthesizedExpression(sub1),
         sub2 : parseParenthesizedExpression(sub2),
     }
+}
+
+function parseCommaSeparatedValues(expr: Token[]): Array<Token[]>
+{
+    let values: Array<Token[]> = [];
+    let __value: Token[] = [];
+
+    let depth = 0;
+
+    for (const token of expr)
+    {
+        if (token.value === ',' && depth === 0)
+        {
+            values.push(__value);
+            __value = [];
+            continue;
+        }
+
+        if (token.value === '(')
+        {
+            depth++;
+        }
+        else if (token.value === ')')
+        {
+            depth--;
+        }
+
+        __value.push(token);
+    }
+
+    values.push(__value);
+
+    return values;
+}
+
+function __isLineBreakOrEOF(token: Token | null): boolean
+{
+    if (token === null) return true;
+
+    return token.type === 'spec' && (token.value === 'LINEBREAK' || token.value === 'ENDOFSTREAM');
 }
