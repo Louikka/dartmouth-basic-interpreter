@@ -6,19 +6,12 @@ import { Parser } from '../src/Parser.ts';
 
 const test = `
 10 LET A = 12
-20 READ B, C, D
-998 DATA 11, 4, 846.21
-30REMabobabaobsdbsjdjshdjs45f64d5f
-40STOP
-999END
-50 NEXT X
+20 PRINT "aboba = " A
 `;
 
 
 let lexer = new Lexer(test);
 let l = lexer.analyse();
-
-console.log(l);
 
 let parser = new Parser(l);
 parser.isDevLogging = true;

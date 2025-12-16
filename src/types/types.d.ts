@@ -109,7 +109,7 @@ type DATAStatement = {
 type PRINTStatement = {
     line_number: number;
     statement: 'PRINT';
-    value: Array<StrNode | VarNode>;
+    value: Array<StrNode | [ StrNode, ExprNode ] | ExprNode>;
 };
 type GOTOStatement = {
     line_number: number;

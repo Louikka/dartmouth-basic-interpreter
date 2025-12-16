@@ -24,6 +24,8 @@ export class Parser
     }
 
 
+    /** Emulates original output format of `PRINT` statement. */
+    public emulateOutput = true;
     /** Enable or disable developer logging to console. */
     public isDevLogging = false;
 
@@ -88,6 +90,12 @@ export class Parser
         this.tokenStream.next();
 
         return __return;
+    }
+
+    private readExpressionUntilComma(currentToken: Token)
+    {
+        // `this.readWhile` does not read current token.
+        return [ currentToken, ...this.readWhile((t, tl) => !__isLineBreakOrEOF(t) && t.value !== ',') ];
     }
 
 
@@ -212,6 +220,10 @@ export class Parser
 
         switch (statement.value)
         {
+            // `break;` on the end of the case label is for safety reasons.
+            // (Also, in VSCode it makes case label fold nicely)
+            // Do not remove.
+
             case 'LET':
             {
                 return {
@@ -219,7 +231,7 @@ export class Parser
                     statement : statement.value,
                     value : this.parseAssign(),
                 };
-            }
+            }break;
             case 'READ':
             {
                 let vars = [];
@@ -228,16 +240,23 @@ export class Parser
                 {
                     vars.push(this.parseVariable());
 
-                    let isComma = this.tokenStream.peek();
+                    let maybeComma = this.tokenStream.peek();
 
-                    if (isComma !== null && isComma.value === ',')
+                    if (maybeComma !== null && maybeComma.value === ',')
                     {
                         this.tokenStream.next();
                         continue;
                     }
                     else
                     {
-                        break;
+                        if (__isLineBreakOrEOF(this.tokenStream.peek()))
+                        {
+                            break;
+                        }
+                        else
+                        {
+                            throwError(`Parser error : Expected a comma or a line break.`);
+                        }
                     }
                 }
 
@@ -246,7 +265,7 @@ export class Parser
                     statement : statement.value,
                     value : vars,
                 };
-            }
+            }break;
             case 'DATA':
             {
                 let data = [];
@@ -255,16 +274,23 @@ export class Parser
                 {
                     data.push(this.parseNumber());
 
-                    let isComma = this.tokenStream.peek();
+                    let maybeComma = this.tokenStream.peek();
 
-                    if (isComma !== null && isComma.value === ',')
+                    if (maybeComma !== null && maybeComma.value === ',')
                     {
                         this.tokenStream.next();
                         continue;
                     }
                     else
                     {
-                        break;
+                        if (__isLineBreakOrEOF(this.tokenStream.peek()))
+                        {
+                            break;
+                        }
+                        else
+                        {
+                            throwError(`Parser error : Expected a comma or a line break.`);
+                        }
                     }
                 }
 
@@ -273,11 +299,63 @@ export class Parser
                     statement : statement.value,
                     value : data,
                 };
-            }
+            }break;
             case 'PRINT':
             {
-                throw new Error(); // TO-DO
-            }
+                let data: Array<StrNode | [ StrNode, ExprNode ] | ExprNode> = [];
+                let isLastIsComma = false;
+
+                while (!__isLineBreakOrEOF(this.tokenStream.peek()))
+                {
+                    const token = this.tokenStream.peek();
+                    if (token === null)
+                    {
+                        throwError(`Parser error : Cannot parse token : token is null.`);
+                    }
+
+                    if (token.type === 'str')
+                    {
+                        const string = this.parseString();
+
+                        const nextToken = this.tokenStream.peek();
+                        if (!__isLineBreakOrEOF(nextToken) && nextToken !== null && nextToken.value !== ',')
+                        {
+                            const expression = this.readExpressionUntilComma(nextToken);
+
+                            data.push([ string, this.parseExpression(expression) ]);
+                        }
+                        else
+                        {
+                            data.push(string);
+                        }
+
+                        isLastIsComma = false;
+                        continue;
+                    }
+                    else if (token.type === 'punc' && token.value === ',')
+                    {
+                        this.tokenStream.next();
+                        isLastIsComma = true;
+                        continue;
+                    }
+                    else
+                    {
+                        const expression = this.readExpressionUntilComma(token);
+
+                        data.push(this.parseExpression(expression));
+                        isLastIsComma = false;
+                        continue;
+                    }
+                }
+
+                if (!isLastIsComma) data.push({ type : 'STRING', value : '\n', });
+
+                return {
+                    line_number : lineNumber.value,
+                    statement : statement.value,
+                    value : data,
+                };
+            }break;
             case 'GOTO':
             {
                 return {
@@ -285,15 +363,15 @@ export class Parser
                     statement : statement.value,
                     value : this.parseNumber(),
                 };
-            }
+            }break;
             case 'IF':
             {
                 throw new Error(); // TO-DO
-            }
+            }break;
             case 'FOR':
             {
                 throw new Error(); // TO-DO
-            }
+            }break;
             case 'NEXT':
             {
                 return {
@@ -301,25 +379,25 @@ export class Parser
                     statement : statement.value,
                     value : this.parseVariable(),
                 };
-            }
+            }break;
             case 'END':
             {
                 return {
                     line_number : lineNumber.value,
                     statement : statement.value,
                 };
-            }
+            }break;
             case 'STOP':
             {
                 return {
                     line_number : lineNumber.value,
                     statement : statement.value,
                 };
-            }
+            }break;
             case 'DEF':
             {
                 throw new Error(); // TO-DO
-            }
+            }break;
             case 'GOSUB':
             {
                 return {
@@ -327,25 +405,25 @@ export class Parser
                     statement : statement.value,
                     value : this.parseNumber(),
                 };
-            }
+            }break;
             case 'RETURN':
             {
                 return {
                     line_number : lineNumber.value,
                     statement : statement.value,
                 };
-            }
+            }break;
             case 'DIM':
             {
                 throw new Error(); // TO-DO
-            }
+            }break;
             case 'REM':
             {
                 return {
                     line_number : lineNumber.value,
                     statement : statement.value,
                 };
-            }
+            }break;
 
             default:
             {
@@ -527,7 +605,7 @@ function parseParenthesizedExpression(pExpr: Token[]): ExprNode
         }
         else if (pExpr[0].type === 'var')
         {
-            if (pExpr[1].value === '(')
+            if (pExpr[1] !== undefined && pExpr[1].value === '(')
             {
                 let __readSubscript = readParenthesesFromList(pExpr);
                 let __subscript = parseCommaSeparatedValues(__readSubscript);
@@ -566,20 +644,27 @@ function parseParenthesizedExpression(pExpr: Token[]): ExprNode
                 argument : parseParenthesizedExpression(readParenthesesFromList(pExpr)),
             };
         }
-        else if (pExpr[0].type === 'keyw' && pExpr[0].value === 'FN' && pExpr[1].type === 'var')
+        else if (pExpr[0].type === 'keyw' && pExpr[0].value === 'FN')
         {
-            return {
-                type : 'UFUNCCALL',
-                name : {
-                    type : 'VARIABLE',
-                    name : pExpr[1].value,
-                },
-                argument : parseParenthesizedExpression(readParenthesesFromList(pExpr)),
-            };
+            if (pExpr[1] !== undefined && pExpr[1].type === 'var')
+            {
+                return {
+                    type : 'UFUNCCALL',
+                    name : {
+                        type : 'VARIABLE',
+                        name : pExpr[1].value,
+                    },
+                    argument : parseParenthesizedExpression(readParenthesesFromList(pExpr)),
+                };
+            }
+            else
+            {
+                throwError(`Parser error : Cannot parse function call : unexpected token : "${pExpr[1]}".`);
+            }
         }
         else
         {
-            throwError(`Parser error : Cannot parse expression : unexpected token : "${pExpr[0].type}".`);
+            throwError(`Parser error : Cannot parse expression : unexpected token : "${pExpr[0]}".`);
         }
     }
 }

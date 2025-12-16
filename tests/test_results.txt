@@ -18,69 +18,23 @@
     },
     {
       "line_number": 20,
-      "statement": "READ",
+      "statement": "PRINT",
       "value": [
-        {
-          "type": "VARIABLE",
-          "name": "B"
-        },
-        {
-          "type": "VARIABLE",
-          "name": "C"
-        },
-        {
-          "type": "VARIABLE",
-          "name": "D"
-        }
-      ]
-    },
-    {
-      "line_number": 998,
-      "statement": "DATA",
-      "value": [
-        {
-          "type": "NUMBER",
-          "value": 11
-        },
-        {
-          "type": "NUMBER",
-          "value": 4
-        },
-        {
-          "type": "NUMBER",
-          "value": 846.21
-        }
-      ]
-    },
-    {
-      "line_number": 30,
-      "statement": "REM"
-    },
-    {
-      "line_number": 40,
-      "statement": "STOP"
-    },
-    {
-      "line_number": 999,
-      "statement": "END"
-    },
-    {
-      "line_number": 50,
-      "statement": "NEXT",
-      "value": {
-        "type": "TABLEVAR",
-        "name": "X",
-        "subscripts": {
-          "sub1": {
-            "type": "NUMBER",
-            "value": 12
+        [
+          {
+            "type": "STRING",
+            "value": "ABOBA = "
           },
-          "sub2": {
-            "type": "NUMBER",
-            "value": 4
+          {
+            "type": "VARIABLE",
+            "name": "A"
           }
+        ],
+        {
+          "type": "STRING",
+          "value": "\n"
         }
-      }
+      ]
     }
   ]
 }
