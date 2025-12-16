@@ -210,3 +210,44 @@ export function stringifyTokens(input: Token | Token[], separator?: string): str
 
     return s;
 }
+
+export function convertLogicalOperator(token: Token): Token
+{
+    switch (token.value)
+    {
+        case 'EQU': return { type : 'oper', value : '=', };
+        case 'LSS': return { type : 'oper', value : '<', };
+        case 'GRT': return { type : 'oper', value : '>', };
+        case 'LQU': return { type : 'oper', value : '<=', };
+        case 'GQU': return { type : 'oper', value : '>=', };
+        case 'NQU': return { type : 'oper', value : '<>', };
+
+        default: return token;
+    }
+}
+
+export function getPrecedence(o: string): number
+{
+    switch (o)
+    {
+        case '+':
+        case '-':
+        {
+            return 1;
+        }
+        case '*':
+        case '/':
+        {
+            return 2;
+        }
+        case '^':
+        {
+            return 3;
+        }
+
+        default:
+        {
+            return -1;
+        }
+    }
+}
