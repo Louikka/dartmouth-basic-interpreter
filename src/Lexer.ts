@@ -3,6 +3,7 @@ import {
     isKeyword, isKeywordStart,
     isOperator,
     isPunctuation,
+    isRelation,
     isVar, isVarStart,
     isWhitespace,
     throwError
@@ -284,9 +285,19 @@ export class Lexer
 
         if (isOperator(char))
         {
+            this.charStream.next();
+
             return {
                 type : 'oper',
-                value : this.readWhile((char, before, after, readString) => isOperator(char)),
+                value : char,
+            };
+        }
+
+        if (isRelation(char))
+        {
+            return {
+                type : 'rel',
+                value : this.readWhile((char, before, after, readString) => isRelation(char)),
             };
         }
 

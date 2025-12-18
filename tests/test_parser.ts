@@ -5,13 +5,14 @@ import { Parser } from '../src/Parser.ts';
 
 
 const test = `
-10 LET A = 12
-20 PRINT "aboba = " A
+40 FOR A = 45 TO 50
 `;
 
 
 let lexer = new Lexer(test);
 let l = lexer.analyse();
+
+//console.log(l);
 
 let parser = new Parser(l);
 parser.isDevLogging = true;

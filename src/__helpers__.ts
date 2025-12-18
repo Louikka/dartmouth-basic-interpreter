@@ -166,7 +166,12 @@ export function isVar(char: string): boolean
 
 export function isOperator(char: string): boolean
 {
-    return BASICOperators.includes(char) || BASICConditionOperators.includes(char);
+    return BASICOperators.includes(char);
+}
+
+export function isRelation(char: string): boolean
+{
+    return BASICConditionOperators.includes(char);
 }
 
 export function isPunctuation(char: string): boolean
@@ -185,6 +190,24 @@ export function isNumeric(str: string): boolean
     if (typeof str === 'number') return true;
     if (typeof str !== 'string') return false;
     return !isNaN(+str) && !isNaN(parseFloat(str));
+}
+
+
+
+export function convertNumTokenToNode(token: NumToken): NumNode
+{
+    return {
+        type : 'NUMBER',
+        value : token.value,
+    };
+}
+
+export function convertStrTokenToNode(token: StrToken): StrNode
+{
+    return {
+        type : 'STRING',
+        value : token.value,
+    };
 }
 
 
@@ -215,12 +238,12 @@ export function convertLogicalOperator(token: Token): Token
 {
     switch (token.value)
     {
-        case 'EQU': return { type : 'oper', value : '=', };
-        case 'LSS': return { type : 'oper', value : '<', };
-        case 'GRT': return { type : 'oper', value : '>', };
-        case 'LQU': return { type : 'oper', value : '<=', };
-        case 'GQU': return { type : 'oper', value : '>=', };
-        case 'NQU': return { type : 'oper', value : '<>', };
+        case 'EQU': return { type : 'rel', value : '=', };
+        case 'LSS': return { type : 'rel', value : '<', };
+        case 'GRT': return { type : 'rel', value : '>', };
+        case 'LQU': return { type : 'rel', value : '<=', };
+        case 'GQU': return { type : 'rel', value : '>=', };
+        case 'NQU': return { type : 'rel', value : '<>', };
 
         default: return token;
     }
@@ -249,5 +272,13 @@ export function getPrecedence(o: string): number
         {
             return -1;
         }
+    }
+}
+
+export function testTokenValue(token: Token | null, expectedValue: string, errMessage?: string)
+{
+    if (token === null || token.value !== expectedValue)
+    {
+        throwError(`Parser error : ${errMessage ?? `Expected to see "${expectedValue}".`}.`);
     }
 }

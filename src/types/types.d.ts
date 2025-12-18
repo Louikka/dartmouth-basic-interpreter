@@ -1,4 +1,4 @@
-type Token = PuncToken | NumToken | StrToken | KeywToken | VarToken | FuncToken | OperToken | SpecToken;
+type Token = PuncToken | NumToken | StrToken | KeywToken | VarToken | FuncToken | OperToken | RelToken | SpecToken;
 
 type PuncToken = {
     type: 'punc';
@@ -28,6 +28,10 @@ type OperToken = {
     type: 'oper';
     value: string;
 };
+type RelToken = {
+    type: 'rel';
+    value: string;
+};
 type SpecToken = {
     type: 'spec';
     value: 'LINEBREAK' | 'ENDOFSTREAM';
@@ -55,12 +59,28 @@ type ListNode = {
     name: string;
     subscript: ExprNode;
 };
+type __ListNode = {
+    type: 'LISTVAR';
+    name: string;
+    /** Must be an integer. */
+    subscript: number;
+};
 type TableNode = {
     type: 'TABLEVAR';
     name: string;
     subscripts: {
         sub1: ExprNode;
         sub2: ExprNode;
+    };
+};
+type __TableNode = {
+    type: 'TABLEVAR';
+    name: string;
+    subscripts: {
+        /** Must be an integer. */
+        sub1: number;
+        /** Must be an integer. */
+        sub2: number;
     };
 };
 type FuncNode = DefFuncNode | UserFuncNode;
@@ -71,21 +91,17 @@ type DefFuncNode = {
 };
 type UserFuncNode = {
     type: 'UFUNCCALL';
-    name: VarNode;
+    /** `FN` + single letter. */
+    name: string;
     argument: ExprNode;
 };
-type ExprNode = NumNode | VarNode | ListNode | TableNode | BinNode | FuncNode;
 type BinNode = {
     type: 'BINARY';
-    operator: BASICOperator;
+    operator: string;
     left: ExprNode;
     right: ExprNode;
 };
-type AsgnNode = {
-    type: 'ASSIGN';
-    variable: VarNode;
-    expression: ExprNode;
-};
+type ExprNode = NumNode | VarNode | ListNode | TableNode | BinNode | FuncNode;
 
 
 
@@ -94,7 +110,10 @@ type ASTStatement = LETStatement | READStatement | DATAStatement | PRINTStatemen
 type LETStatement = {
     line_number: number;
     statement: 'LET';
-    value: AsgnNode;
+    value: {
+        variable: VarNode;
+        expression: ExprNode;
+    };
 };
 type READStatement = {
     line_number: number;
@@ -120,9 +139,9 @@ type IFTHENStatement = {
     line_number: number;
     statement: 'IF';
     value: {
-        condition_left: ExprNode;
-        condition: BASICCondition;
-        condition_right: ExprNode;
+        expression_left: ExprNode;
+        relation: string;
+        expression_right: ExprNode;
         then: NumNode;
     };
 };
@@ -149,11 +168,13 @@ type STOPStatement = {
     line_number: number;
     statement: 'STOP';
 };
-type DEFStatement = {                // TO-DO
+type DEFStatement = {
     line_number: number;
     statement: 'DEF';
     value: {
-        variable: VarNode;
+        /** `FN` + single letter. */
+        name: string;
+        variable: UnsubVarNode;
         expression: ExprNode;
     };
 };
@@ -166,10 +187,10 @@ type RETURNStatement = {
     line_number: number;
     statement: 'RETURN';
 };
-type DIMStatement = {                // TO-DO
+type DIMStatement = {
     line_number: number;
     statement: 'DIM';
-    value: VarNode;
+    value: Array<__ListNode | __TableNode>;
 };
 type REMStatement = {
     line_number: number;

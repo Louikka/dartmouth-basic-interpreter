@@ -2,39 +2,26 @@
   "type": "PROGRAM",
   "value": [
     {
-      "line_number": 10,
-      "statement": "LET",
+      "line_number": 40,
+      "statement": "FOR",
       "value": {
-        "type": "ASSIGN",
         "variable": {
           "type": "VARIABLE",
           "name": "A"
         },
         "expression": {
           "type": "NUMBER",
-          "value": 12
+          "value": 45
+        },
+        "to": {
+          "type": "NUMBER",
+          "value": 50
+        },
+        "step": {
+          "type": "NUMBER",
+          "value": 1
         }
       }
-    },
-    {
-      "line_number": 20,
-      "statement": "PRINT",
-      "value": [
-        [
-          {
-            "type": "STRING",
-            "value": "ABOBA = "
-          },
-          {
-            "type": "VARIABLE",
-            "name": "A"
-          }
-        ],
-        {
-          "type": "STRING",
-          "value": "\n"
-        }
-      ]
     }
   ]
 }

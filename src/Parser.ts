@@ -39,9 +39,10 @@ export class Parser
     {
         let tl: Token[] = [];
 
-        while (!this.tokenStream.isEndOfStream() && predicate(this.tokenStream.next()!, tl))
+        while (!this.tokenStream.isEndOfStream() && predicate(this.tokenStream.peek()!, tl))
         {
             tl.push(this.tokenStream.peek()!);
+            this.tokenStream.next();
         }
 
         return tl;
@@ -94,8 +95,7 @@ export class Parser
 
     private readExpressionUntilComma(currentToken: Token)
     {
-        // `this.readWhile` does not read current token.
-        return [ currentToken, ...this.readWhile((t, tl) => !__isLineBreakOrEOF(t) && t.value !== ',') ];
+        return this.readWhile((t, tl) => !__isLineBreakOrEOF(t) && t.value !== ',');
     }
 
 
@@ -184,26 +184,6 @@ export class Parser
         return parseParenthesizedExpression(pExpr);
     }
 
-    private parseAssign(): AsgnNode
-    {
-        const varToken = this.parseVariable();
-
-        const operToken = this.tokenStream.peek()!;
-        if (operToken === null || operToken.type !== 'oper' || operToken.value !== '=')
-        {
-            if (this.isDevLogging) console.log(operToken);
-            throwError(`Parser error : Expected an assignment operator ("=").`);
-        }
-
-        const expression = this.readWhile((t, tl) => !__isLineBreakOrEOF(t));
-
-        return {
-            type : 'ASSIGN',
-            variable : varToken,
-            expression : this.parseExpression(expression),
-        };
-    }
-
     private parseStatement(): ASTStatement
     {
         const lineNumber = this.parseNumber();
@@ -226,10 +206,25 @@ export class Parser
 
             case 'LET':
             {
+                const varNode = this.parseVariable();
+
+                const __relToken = this.tokenStream.peek();
+                if (__relToken === null || __relToken.type !== 'rel' || __relToken.value !== '=')
+                {
+                    if (this.isDevLogging) console.log(__relToken);
+                    throwError(`Parser error : Expected an assignment operator ("=").`);
+                }
+
+                this.tokenStream.next();
+                const expression = this.readWhile((t, tl) => !__isLineBreakOrEOF(t));
+
                 return {
                     line_number : lineNumber.value,
                     statement : statement.value,
-                    value : this.parseAssign(),
+                    value : {
+                        variable : varNode,
+                        expression : this.parseExpression(expression),
+                    },
                 };
             }break;
             case 'READ':
@@ -366,11 +361,108 @@ export class Parser
             }break;
             case 'IF':
             {
-                throw new Error(); // TO-DO
+                const exprLeft = this.readWhile((t, tl) => t.type !== 'rel');
+
+                const relation = this.tokenStream.peek();
+                if (relation === null || relation.type !== 'rel')
+                {
+                    if (this.isDevLogging) console.log(relation);
+                    throwError(`Parser error : Expected a relation operator.`);
+                }
+
+                this.tokenStream.next();
+                const exprRight = this.readWhile((t, tl) => t.type !== 'keyw');
+
+                const __THENKeyw = this.tokenStream.peek();
+                if (__THENKeyw === null || __THENKeyw.value !== 'THEN')
+                {
+                    if (this.isDevLogging) console.log(__THENKeyw);
+                    throwError(`Parser error : Expected a "THEN" keyword.`);
+                }
+
+                this.tokenStream.next();
+
+                const THENNumber = this.parseNumber();
+
+                return {
+                    line_number : lineNumber.value,
+                    statement : statement.value,
+                    value : {
+                        expression_left : this.parseExpression(exprLeft),
+                        relation : relation.value,
+                        expression_right : this.parseExpression(exprRight),
+                        then : THENNumber,
+                    },
+                };
             }break;
             case 'FOR':
             {
-                throw new Error(); // TO-DO
+                // unsubscripted variable
+                const varNode = this.parseVariable();
+
+                // =
+                const __relToken = this.tokenStream.peek();
+                if (__relToken === null || __relToken.type !== 'rel' || __relToken.value !== '=')
+                {
+                    if (this.isDevLogging) console.log(__relToken);
+                    throwError(`Parser error : Expected an assignment operator ("=").`);
+                }
+
+                this.tokenStream.next();
+
+                // expression
+                const assignExpr = this.readWhile((t, tl) => t.type !== 'keyw');
+
+                // TO
+                const __TOKeyw = this.tokenStream.peek();
+                if (__TOKeyw === null || __TOKeyw.value !== 'TO')
+                {
+                    if (this.isDevLogging) console.log(__TOKeyw);
+                    throwError(`Parser error : Expected a "TO" keyword.`);
+                }
+
+                this.tokenStream.next();
+
+                // expression
+                const TOExpr = this.readWhile((t, tl) => t.type !== 'keyw');
+
+                // (optional)
+
+                // STEP
+                const __STEPKeyw = this.tokenStream.peek();
+
+                // expression
+                let STEPExpr: Array<Token>;
+
+                if (__isLineBreakOrEOF(__STEPKeyw))
+                {
+                    // if STEP is omitted (defaults to 1 (maybe))
+                    // `Omitting the STEP part is the same as assuming the step-size to be unity`
+                    STEPExpr = [ { type : 'num', value : 1, } ];
+                }
+                else
+                {
+                    if (__STEPKeyw === null || __STEPKeyw.value !== 'STEP')
+                    {
+                        if (this.isDevLogging) console.log(__STEPKeyw);
+                        throwError(`Parser error : Expected a "STEP" keyword.`);
+                    }
+
+                    this.tokenStream.next();
+                    STEPExpr = this.readWhile((t, tl) => !__isLineBreakOrEOF(t));
+                }
+
+
+                return {
+                    line_number : lineNumber.value,
+                    statement : statement.value,
+                    value : {
+                        variable : varNode,
+                        expression : this.parseExpression(assignExpr),
+                        to : this.parseExpression(TOExpr),
+                        step : this.parseExpression(STEPExpr),
+                    },
+                };
             }break;
             case 'NEXT':
             {
@@ -650,10 +742,7 @@ function parseParenthesizedExpression(pExpr: Token[]): ExprNode
             {
                 return {
                     type : 'UFUNCCALL',
-                    name : {
-                        type : 'VARIABLE',
-                        name : pExpr[1].value,
-                    },
+                    name : pExpr[0].value + pExpr[1].value,
                     argument : parseParenthesizedExpression(readParenthesesFromList(pExpr)),
                 };
             }
