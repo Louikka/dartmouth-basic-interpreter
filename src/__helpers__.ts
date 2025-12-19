@@ -118,9 +118,13 @@ export const binTokens = {
 
 
 
-export function throwError(message: string): never
+export function throwError(...message: string[]): never
 {
-    console.error(message);
+    for (const msg of message)
+    {
+        console.error(msg.trim());
+    }
+
     process.exit(0);
 }
 
@@ -212,26 +216,14 @@ export function convertStrTokenToNode(token: StrToken): StrNode
 
 
 
-export function stringifyTokens(input: Token | Token[], separator?: string): string
+export function stringifyToken(input: Token, indentation?: number): string
 {
-    if (!Array.isArray(input))
-    {
-        return input.value.toString();
-    }
+    return JSON.stringify(input, null, indentation);
+}
 
-    let s = '';
-
-    for (let i = 0; i < input.length; i++)
-    {
-        s += input[i].value;
-
-        if (separator !== undefined && i < input.length)
-        {
-            s += separator;
-        }
-    }
-
-    return s;
+export function stringifyTokenValue(input: Token): string
+{
+    return input.value.toString();
 }
 
 export function convertLogicalOperator(token: Token): Token

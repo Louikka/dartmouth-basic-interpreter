@@ -24,10 +24,8 @@ export class Parser
     }
 
 
-    /** Emulates original output format of `PRINT` statement. */
-    public emulateOutput = true;
-    /** Enable or disable developer logging to console. */
-    public isDevLogging = false;
+    /** Enables developer logging to console. */
+    public enableDevLogging = false;
 
     private tokenStream: __Streamer<Token>;
 
@@ -54,7 +52,7 @@ export class Parser
         const __currToken = this.tokenStream.peek();
         if (__currToken === null || __currToken.value !== '(')
         {
-            if (this.isDevLogging) console.log(__currToken);
+            if (this.enableDevLogging) console.log(__currToken);
             throwError(`Parser error : Expected a parenthesis.`);
         }
 
@@ -66,7 +64,7 @@ export class Parser
             const token = this.tokenStream.next();
             if (token === null)
             {
-                if (this.isDevLogging) console.log(token);
+                if (this.enableDevLogging) console.log(token);
                 throwError(`Parser error : Cannot read a token.`);
             }
 
@@ -99,13 +97,20 @@ export class Parser
     }
 
 
-    private parseNumber(): NumNode
+    private parseNumber(lineNumber?: number): NumNode
     {
         const token = this.tokenStream.peek();
         if (token === null || token.type !== 'num')
         {
-            if (this.isDevLogging) console.log(token);
-            throwError(`Parser error : Expected a number.`);
+            const ln = (lineNumber !== undefined) ? ` (${lineNumber})` : '';
+
+            if (this.enableDevLogging)
+            {
+                console.log(`Parser.(private)parseNumber() : Expexted to see a number, but got '${token?.type ?? token}'.`);
+                if (token !== null) console.log(JSON.stringify(token, null, 2) + '\n');
+            }
+
+            throwError(`Parser error :${ln} Expected a number.`);
         }
 
         this.tokenStream.next();
@@ -116,13 +121,20 @@ export class Parser
         };
     }
 
-    private parseString(): StrNode
+    private parseString(lineNumber?: number): StrNode
     {
         const token = this.tokenStream.peek();
         if (token === null || token.type !== 'str')
         {
-            if (this.isDevLogging) console.log(token);
-            throwError(`Parser error : Expected a string.`);
+            const ln = (lineNumber !== undefined) ? ` (${lineNumber})` : '';
+
+            if (this.enableDevLogging)
+            {
+                console.log(`Parser.(private)parseString() : Expexted to see a string, but got '${token?.type ?? token}'.`);
+                if (token !== null) console.log(JSON.stringify(token, null, 2) + '\n');
+            }
+
+            throwError(`Parser error :${ln} Expected a string.`);
         }
 
         this.tokenStream.next();
@@ -138,7 +150,7 @@ export class Parser
         const token = this.tokenStream.peek();
         if (token === null || token.type !== 'var')
         {
-            if (this.isDevLogging) console.log(token);
+            if (this.enableDevLogging) console.log(token);
             throwError(`Parser error : Expected a variable name.`);
         }
 
@@ -187,12 +199,13 @@ export class Parser
     private parseStatement(): ASTStatement
     {
         const lineNumber = this.parseNumber();
+        const __ln = lineNumber.value;
 
         const statement = this.tokenStream.peek();
         if (statement === null || statement.type !== 'keyw' || !BASICStatements.includes(statement.value))
         {
-            if (this.isDevLogging) console.log(statement);
-            throwError(`Parser error : Expected a statement.`);
+            if (this.enableDevLogging) console.log(statement);
+            throwError(`Parser error : (${__ln}) Expected a statement.`);
         }
 
         this.tokenStream.next();
@@ -211,15 +224,14 @@ export class Parser
                 const __relToken = this.tokenStream.peek();
                 if (__relToken === null || __relToken.type !== 'rel' || __relToken.value !== '=')
                 {
-                    if (this.isDevLogging) console.log(__relToken);
-                    throwError(`Parser error : Expected an assignment operator ("=").`);
+                    throwError(`Parser error : (${__ln}) Expected an assignment operator ("=").`);
                 }
 
                 this.tokenStream.next();
                 const expression = this.readWhile((t, tl) => !__isLineBreakOrEOF(t));
 
                 return {
-                    line_number : lineNumber.value,
+                    line_number : __ln,
                     statement : statement.value,
                     value : {
                         variable : varNode,
@@ -250,13 +262,13 @@ export class Parser
                         }
                         else
                         {
-                            throwError(`Parser error : Expected a comma or a line break.`);
+                            throwError(`Parser error : (${__ln}) Expected a comma or a line break.`);
                         }
                     }
                 }
 
                 return {
-                    line_number : lineNumber.value,
+                    line_number : __ln,
                     statement : statement.value,
                     value : vars,
                 };
@@ -284,13 +296,13 @@ export class Parser
                         }
                         else
                         {
-                            throwError(`Parser error : Expected a comma or a line break.`);
+                            throwError(`Parser error : (${__ln}) Expected a comma or a line break.`);
                         }
                     }
                 }
 
                 return {
-                    line_number : lineNumber.value,
+                    line_number : __ln,
                     statement : statement.value,
                     value : data,
                 };
@@ -305,7 +317,7 @@ export class Parser
                     const token = this.tokenStream.peek();
                     if (token === null)
                     {
-                        throwError(`Parser error : Cannot parse token : token is null.`);
+                        throwError(`Parser error : (${__ln}) Cannot parse token : token is null.`);
                     }
 
                     if (token.type === 'str')
@@ -346,7 +358,7 @@ export class Parser
                 if (!isLastIsComma) data.push({ type : 'STRING', value : '\n', });
 
                 return {
-                    line_number : lineNumber.value,
+                    line_number : __ln,
                     statement : statement.value,
                     value : data,
                 };
@@ -354,7 +366,7 @@ export class Parser
             case 'GOTO':
             {
                 return {
-                    line_number : lineNumber.value,
+                    line_number : __ln,
                     statement : statement.value,
                     value : this.parseNumber(),
                 };
@@ -366,8 +378,8 @@ export class Parser
                 const relation = this.tokenStream.peek();
                 if (relation === null || relation.type !== 'rel')
                 {
-                    if (this.isDevLogging) console.log(relation);
-                    throwError(`Parser error : Expected a relation operator.`);
+                    if (this.enableDevLogging) console.log(relation);
+                    throwError(`Parser error : (${__ln}) Expected a relation operator.`);
                 }
 
                 this.tokenStream.next();
@@ -376,8 +388,8 @@ export class Parser
                 const __THENKeyw = this.tokenStream.peek();
                 if (__THENKeyw === null || __THENKeyw.value !== 'THEN')
                 {
-                    if (this.isDevLogging) console.log(__THENKeyw);
-                    throwError(`Parser error : Expected a "THEN" keyword.`);
+                    if (this.enableDevLogging) console.log(__THENKeyw);
+                    throwError(`Parser error : (${__ln}) Expected a "THEN" keyword.`);
                 }
 
                 this.tokenStream.next();
@@ -385,7 +397,7 @@ export class Parser
                 const THENNumber = this.parseNumber();
 
                 return {
-                    line_number : lineNumber.value,
+                    line_number : __ln,
                     statement : statement.value,
                     value : {
                         expression_left : this.parseExpression(exprLeft),
@@ -399,13 +411,17 @@ export class Parser
             {
                 // unsubscripted variable
                 const varNode = this.parseVariable();
+                if (varNode.type !== 'VARIABLE')
+                {
+                    throwError(`Parser error : (${__ln}) Expected an unsubscripted variable.`);
+                }
 
                 // =
                 const __relToken = this.tokenStream.peek();
                 if (__relToken === null || __relToken.type !== 'rel' || __relToken.value !== '=')
                 {
-                    if (this.isDevLogging) console.log(__relToken);
-                    throwError(`Parser error : Expected an assignment operator ("=").`);
+                    if (this.enableDevLogging) console.log(__relToken);
+                    throwError(`Parser error : (${__ln}) Expected an assignment operator ("=").`);
                 }
 
                 this.tokenStream.next();
@@ -417,8 +433,8 @@ export class Parser
                 const __TOKeyw = this.tokenStream.peek();
                 if (__TOKeyw === null || __TOKeyw.value !== 'TO')
                 {
-                    if (this.isDevLogging) console.log(__TOKeyw);
-                    throwError(`Parser error : Expected a "TO" keyword.`);
+                    if (this.enableDevLogging) console.log(__TOKeyw);
+                    throwError(`Parser error : (${__ln}) Expected a "TO" keyword.`);
                 }
 
                 this.tokenStream.next();
@@ -444,8 +460,8 @@ export class Parser
                 {
                     if (__STEPKeyw === null || __STEPKeyw.value !== 'STEP')
                     {
-                        if (this.isDevLogging) console.log(__STEPKeyw);
-                        throwError(`Parser error : Expected a "STEP" keyword.`);
+                        if (this.enableDevLogging) console.log(__STEPKeyw);
+                        throwError(`Parser error : (${__ln}) Expected a "STEP" keyword.`);
                     }
 
                     this.tokenStream.next();
@@ -454,7 +470,7 @@ export class Parser
 
 
                 return {
-                    line_number : lineNumber.value,
+                    line_number : __ln,
                     statement : statement.value,
                     value : {
                         variable : varNode,
@@ -466,34 +482,95 @@ export class Parser
             }break;
             case 'NEXT':
             {
+                const unsubVar = this.parseVariable();
+                if (unsubVar.type !== 'VARIABLE')
+                {
+                    throwError(`Parser error : (${__ln}) Expected an unsubscripted variable.`);
+                }
+
                 return {
-                    line_number : lineNumber.value,
+                    line_number : __ln,
                     statement : statement.value,
-                    value : this.parseVariable(),
+                    value : unsubVar,
                 };
             }break;
             case 'END':
             {
                 return {
-                    line_number : lineNumber.value,
+                    line_number : __ln,
                     statement : statement.value,
                 };
             }break;
             case 'STOP':
             {
                 return {
-                    line_number : lineNumber.value,
+                    line_number : __ln,
                     statement : statement.value,
                 };
             }break;
             case 'DEF':
             {
-                throw new Error(); // TO-DO
+                // FN
+                const __FNKeyw = this.tokenStream.peek();
+                if (__FNKeyw === null || __FNKeyw.value !== 'FN')
+                {
+                    if (this.enableDevLogging) console.log(__FNKeyw);
+                    throwError(`Parser error : (${__ln}) Expected a "FN" keyword.`);
+                }
+
+                this.tokenStream.next();
+
+                // letter
+                const letter = this.tokenStream.peek();
+                if (letter === null || letter.type !== 'var')
+                {
+                    if (this.enableDevLogging) console.log(letter);
+                    throwError(`Parser error : (${__ln}) Expected a function name.`);
+                }
+
+                this.tokenStream.next();
+
+                // unsubscripted variable
+                const __unsub = this.readParentheses();
+                if (__unsub.length > 1)
+                {
+                    throwError(`Parser error : (${__ln}) Expected an unsubscripted variable.`);
+                }
+                const unsubVar = __unsub[0];
+                if (unsubVar.type !== 'var')
+                {
+                    throwError(`Parser error : (${__ln}) Expected an unsubscripted variable.`);
+                }
+
+                // =
+                const __relToken = this.tokenStream.peek();
+                if (__relToken === null || __relToken.type !== 'rel' || __relToken.value !== '=')
+                {
+                    if (this.enableDevLogging) console.log(__relToken);
+                    throwError(`Parser error : (${__ln}) Expected an assignment operator ("=").`);
+                }
+
+                // expression
+                this.tokenStream.next();
+                const expression = this.readWhile((t, tl) => !__isLineBreakOrEOF(t));
+
+                return {
+                    line_number : __ln,
+                    statement : statement.value,
+                    value : {
+                        name : __FNKeyw.value + letter.value,
+                        variable : {
+                            type : 'VARIABLE',
+                            name : unsubVar.value,
+                        },
+                        expression : this.parseExpression(expression),
+                    },
+                };
             }break;
             case 'GOSUB':
             {
                 return {
-                    line_number : lineNumber.value,
+                    line_number : __ln,
                     statement : statement.value,
                     value : this.parseNumber(),
                 };
@@ -501,25 +578,109 @@ export class Parser
             case 'RETURN':
             {
                 return {
-                    line_number : lineNumber.value,
+                    line_number : __ln,
                     statement : statement.value,
                 };
             }break;
             case 'DIM':
             {
-                throw new Error(); // TO-DO
+                let dims = [];
+
+                while (!__isLineBreakOrEOF(this.tokenStream.peek()))
+                {
+                    const letter = this.tokenStream.peek();
+                    if (letter === null || letter.type !== 'var')
+                    {
+                        if (this.enableDevLogging) console.log(letter);
+                        throwError(`Parser error : (${__ln}) Cannot parse a letter.`);
+                    }
+
+                    this.tokenStream.next();
+
+                    const __paren = this.readParentheses();
+                    if (__paren.length > 1)
+                    {
+                        const int1 = __paren[0];
+                        if (int1.type !== 'num' || Number.isInteger(int1.value))
+                        {
+                            throwError(`Parser error : (${__ln}) Expected an integer.`);
+                        }
+
+                        const __comma = __paren[1];
+                        if (__comma === undefined || __comma.value !== ',')
+                        {
+                            throwError(`Parser error : (${__ln}) Expected a comma.`);
+                        }
+
+                        const int2 = __paren[2];
+                        if (int2 === undefined || int2.type !== 'num' || Number.isInteger(int2.value))
+                        {
+                            throwError(`Parser error : (${__ln}) Expected an integer.`);
+                        }
+
+                        dims.push({
+                            letter : letter.value,
+                            int1 : int1.value,
+                            int2 : int2.value,
+                        });
+                    }
+                    else if (__paren.length === 1)
+                    {
+                        const integer = __paren[0];
+                        if (integer.type !== 'num' || Number.isInteger(integer.value))
+                        {
+                            throwError(`Parser error : (${__ln}) Expected an integer.`);
+                        }
+
+                        dims.push({
+                            letter : letter.value,
+                            integer : integer.value,
+                        });
+                    }
+                    else
+                    {
+                        if (this.enableDevLogging) console.log(__paren);
+                        throwError(`Parser error : (${__ln}) Cannot read parentheses.`);
+                    }
+
+
+                    let maybeComma = this.tokenStream.peek();
+
+                    if (maybeComma !== null && maybeComma.value === ',')
+                    {
+                        this.tokenStream.next();
+                        continue;
+                    }
+                    else
+                    {
+                        if (__isLineBreakOrEOF(this.tokenStream.peek()))
+                        {
+                            break;
+                        }
+                        else
+                        {
+                            throwError(`Parser error : (${__ln}) Expected a comma or a line break.`);
+                        }
+                    }
+                }
+
+                return {
+                    line_number : __ln,
+                    statement : statement.value,
+                    value : dims,
+                };
             }break;
             case 'REM':
             {
                 return {
-                    line_number : lineNumber.value,
+                    line_number : __ln,
                     statement : statement.value,
                 };
             }break;
 
             default:
             {
-                throwError(`Parser error : Cannot parse statement "${statement.value}".`);
+                throwError(`Parser error : (${__ln}) Cannot parse statement "${statement.value}".`);
             }
         }
     }

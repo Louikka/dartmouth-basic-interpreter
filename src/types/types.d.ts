@@ -59,28 +59,12 @@ type ListNode = {
     name: string;
     subscript: ExprNode;
 };
-type __ListNode = {
-    type: 'LISTVAR';
-    name: string;
-    /** Must be an integer. */
-    subscript: number;
-};
 type TableNode = {
     type: 'TABLEVAR';
     name: string;
     subscripts: {
         sub1: ExprNode;
         sub2: ExprNode;
-    };
-};
-type __TableNode = {
-    type: 'TABLEVAR';
-    name: string;
-    subscripts: {
-        /** Must be an integer. */
-        sub1: number;
-        /** Must be an integer. */
-        sub2: number;
     };
 };
 type FuncNode = DefFuncNode | UserFuncNode;
@@ -133,6 +117,7 @@ type PRINTStatement = {
 type GOTOStatement = {
     line_number: number;
     statement: 'GOTO';
+    /** Line number. */
     value: NumNode;
 };
 type IFTHENStatement = {
@@ -142,6 +127,7 @@ type IFTHENStatement = {
         expression_left: ExprNode;
         relation: string;
         expression_right: ExprNode;
+        /** Line number. */
         then: NumNode;
     };
 };
@@ -149,7 +135,7 @@ type FORStatement = {
     line_number: number;
     statement: 'FOR';
     value: {
-        variable: VarNode;
+        variable: UnsubVarNode;
         expression: ExprNode;
         to: ExprNode;
         step: ExprNode;
@@ -158,7 +144,7 @@ type FORStatement = {
 type NEXTStatement = {
     line_number: number;
     statement: 'NEXT';
-    value: VarNode;
+    value: UnsubVarNode;
 };
 type ENDStatement = {
     line_number: number;
@@ -181,6 +167,7 @@ type DEFStatement = {
 type GOSUBStatement = {
     line_number: number;
     statement: 'GOSUB';
+    /** Line number. */
     value: NumNode;
 };
 type RETURNStatement = {
@@ -190,7 +177,14 @@ type RETURNStatement = {
 type DIMStatement = {
     line_number: number;
     statement: 'DIM';
-    value: Array<__ListNode | __TableNode>;
+    value: Array<{
+        letter: string;
+        integer: number;
+    } | {
+        letter: string;
+        int1: number;
+        int2: number;
+    }>;
 };
 type REMStatement = {
     line_number: number;
