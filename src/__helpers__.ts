@@ -24,19 +24,20 @@ export class __Streamer<T>
     }
 
 
+    public peek(step = 0): T | null
+    {
+        return this.input[this.pos + step] ?? null;
+    }
+
+    /** Alias for `__Streamer.peek(-1)`. */
     public peekBefore(): T | null
     {
-        return this.input[this.pos - 1] ?? null;
+        return this.peek(-1);
     }
-
-    public peek(): T | null
-    {
-        return this.input[this.pos] ?? null;
-    }
-
+    /** Alias for `__Streamer.peek(1)`. */
     public peekAfter(): T | null
     {
-        return this.input[this.pos + 1] ?? null;
+        return this.peek(1);
     }
 
 
@@ -273,4 +274,20 @@ export function testTokenValue(token: Token | null, expectedValue: string, errMe
     {
         throwError(`Parser error : ${errMessage ?? `Expected to see "${expectedValue}".`}.`);
     }
+}
+
+/**
+ * Keeps only the last of duplicated object.
+ * @param key the key of the object filtering based on.
+ */
+export function removeDuplicatesFromArrayOfObjects<T, K extends keyof T>(arr: Array<T>, key: K): Array<T>
+{
+    const reversedArr = [ ...arr ].reverse();
+
+    const uniqueReversed = reversedArr.filter((val, i, self) =>
+    {
+        return i === self.findIndex((__val) => __val[key] === val[key]);
+    });
+
+    return uniqueReversed.reverse();
 }

@@ -2,19 +2,16 @@
   "type": "PROGRAM",
   "value": [
     {
+      "line_number": 40,
+      "statement": "REM"
+    },
+    {
       "line_number": 50,
-      "statement": "DIM",
-      "value": [
-        {
-          "letter": "A",
-          "int1": 8,
-          "int2": 4
-        },
-        {
-          "letter": "B",
-          "integer": 7
-        }
-      ]
+      "statement": "STOP"
+    },
+    {
+      "line_number": 80,
+      "statement": "REM"
     }
   ]
 }
