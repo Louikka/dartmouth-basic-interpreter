@@ -6,10 +6,10 @@ import { Interpreter } from '../src/Interpreter.ts';
 
 
 const test = `
-50 REM
+30 DATA 10, 4
 40 REM
-80 REM
-50 STOP
+80 END
+90 DATA 11
 `;
 
 
