@@ -23,14 +23,14 @@ export class Interpreter
     }
 
 
+    public allowedStatementsAfterEND = [ 'DATA', ];
+
+
     public normalize(ast = this.ASTtree): ASTRoot
     {
-        let step1 = removeDuplicatesFromArrayOfObjects(ast.value, 'line_number');
-        let step2 = step1.sort((a, b) => a.line_number - b.line_number);
-
         let __return: typeof ast.value = [];
 
-        for (const statement of step2)
+        for (const statement of ast.value)
         {
             __return[ statement.line_number ] = statement;
         }
@@ -52,9 +52,6 @@ export class Interpreter
         const ASTRootValue = this.ASTtreeNormalized.value;
 
 
-        const allowedAfterEND = [ 'DATA', ];
-
-
         // program data
         let isENDEncountered = false;
 
@@ -66,7 +63,7 @@ export class Interpreter
         {
             if (line === undefined) continue;
 
-            if (isENDEncountered && !allowedAfterEND.includes(line.statement))
+            if (isENDEncountered && !this.allowedStatementsAfterEND.includes(line.statement))
             {
                 throwError(`END IS NOT LAST.`);
             }
