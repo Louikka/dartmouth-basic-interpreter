@@ -1,61 +1,3 @@
-// Helper class to stream array.
-// Basically better version of JS generator.
-export class __Streamer<T>
-{
-    private input: Array<T>;
-
-    public get streamLength(): number
-    {
-        return this.input.length;
-    }
-
-    private pos: number;
-
-    public get currentPosition(): number
-    {
-        return this.pos;
-    }
-
-
-    constructor(arr: Array<T>)
-    {
-        this.input = arr;
-        this.pos = 0;
-    }
-
-
-    public peek(step = 0): T | null
-    {
-        return this.input[this.pos + step] ?? null;
-    }
-
-    /** Alias for `__Streamer.peek(-1)`. */
-    public peekBefore(): T | null
-    {
-        return this.peek(-1);
-    }
-    /** Alias for `__Streamer.peek(1)`. */
-    public peekAfter(): T | null
-    {
-        return this.peek(1);
-    }
-
-
-    public next(): T | null
-    {
-        this.pos++;
-        return this.peek();
-    }
-
-
-    public isEndOfStream(): boolean
-    {
-        return this.pos >= this.input.length;
-    }
-}
-
-
-
 /* constants */
 
 export const BASICStatements = [
@@ -217,15 +159,24 @@ export function convertStrTokenToNode(token: StrToken): StrNode
 
 
 
-export function stringifyToken(input: Token, indentation?: number): string
+export function stringifyJSON(input: any, indentation = 2): string
 {
     return JSON.stringify(input, null, indentation);
 }
 
-export function stringifyTokenValue(input: Token): string
+export function stringifyTokens(input: Token[]): string
 {
-    return input.value.toString();
+    let __return = '';
+
+    for (const token of input)
+    {
+        const token_s = token.value.toString();
+        __return += token_s + ' ';
+    }
+
+    return __return.trim();
 }
+
 
 export function convertLogicalOperator(token: Token): Token
 {

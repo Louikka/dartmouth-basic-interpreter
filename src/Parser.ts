@@ -1,33 +1,121 @@
 import {
-    __Streamer,
     BASICOperators,
     BASICStatements,
     binTokens,
+    stringifyTokens,
     throwError
 // @ts-ignore
-} from './__helpers__.ts';
+} from './__helpers.ts';
+// @ts-ignore
+import { BASICErrors } from './errors.ts';
+
+
+class __TokenStream
+{
+    private input: Array<Token>;
+
+    public get streamLength(): number
+    {
+        return this.input.length;
+    }
+
+    private pos: number;
+
+    public get currentPosition(): number
+    {
+        return this.pos;
+    }
+
+    /** Already read tokens from input. */
+    public get __readAll(): Array<Token>
+    {
+        return this.input.slice(0, this.pos);
+    }
+
+    private readLine: Array<Token> = [];
+
+    /** Already read tokens from input from last line-break token (`{ type : "spec", value : "LINEBREAK" }`). */
+    public get __readLine(): Array<Token>
+    {
+        return this.readLine;
+    }
+
+
+    constructor(arr: Array<Token>)
+    {
+        this.input = arr;
+        this.pos = 0;
+    }
+
+
+    public peek(step = 0): Token
+    {
+        return this.input[this.pos + step];
+    }
+
+    /** Alias for `__TokenStream.peek(-1)`. */
+    public peekBefore(): Token
+    {
+        return this.peek(-1);
+    }
+    /** Alias for `__TokenStream.peek(1)`. */
+    public peekAfter(): Token
+    {
+        return this.peek(1);
+    }
+
+
+    public next(): Token
+    {
+        const __token = this.peek();
+        if (__token.type === 'spec' && __token.value === 'LINEBREAK')
+        {
+            this.readLine = [];
+        }
+        else
+        {
+            this.readLine.push(__token);
+        }
+
+        this.pos++;
+        return this.peek();
+    }
+
+
+    public isEndOfStream(): boolean
+    {
+        const token = this.peek();
+
+        const isOverflow = this.pos >= this.streamLength;
+        const isTokenUndefined = token === undefined || token === null;
+
+        return isOverflow || isTokenUndefined || (token.type === 'spec' && token.value === 'ENDOFSTREAM');
+    }
+}
 
 
 export class Parser
 {
     constructor(tokenList: Token[])
     {
-        this.tokenStream = new __Streamer(tokenList);
-        this.tokenStream.isEndOfStream = function ()
-        {
-            const token = this.peek();
+        this.showDetailedErrors = true;
 
-            const isOverflow = this.currentPosition >= this.streamLength;
-
-            return isOverflow || token === null || (token.type === 'spec' && token.value === 'ENDOFSTREAM');
-        };
+        this.originalInput = tokenList;
+        this.tokenStream = new __TokenStream(this.originalInput);
     }
 
 
-    /** Enables developer logging to console. */
-    public enableDevLogging = false;
 
-    private tokenStream: __Streamer<Token>;
+    public showDetailedErrors: boolean;
+
+    private originalInput: Token[];
+    private tokenStream: __TokenStream;
+
+
+    public __resetStream()
+    {
+        this.tokenStream = new __TokenStream(this.originalInput);
+    }
 
 
     /**
@@ -65,7 +153,17 @@ export class Parser
         const __currToken = this.tokenStream.peek();
         if (__currToken === null || __currToken.value !== '(')
         {
-            throwError(`Parser error : Expected a parenthesis.`);
+            if (this.showDetailedErrors)
+            {
+                throwError(
+                    `Parser error : Expected a parenthesis.`,
+                    `  | ${ stringifyTokens(this.tokenStream.__readLine) } <--`
+                );
+            }
+            else
+            {
+                throwError(`ERROR : ` + BASICErrors.ILL_FORMULA);
+            }
         }
 
         let depth = 1;
@@ -115,12 +213,7 @@ export class Parser
         {
             const ln = (lineNumber !== undefined) ? ` (${lineNumber})` : '';
 
-            if (this.enableDevLogging)
-            {
-                console.log(`Parser.(private)parseNumber() : Expexted to see a number, but got '${token.type}'.`);
-                console.log(JSON.stringify(token, null, 2) + '\n');
-            }
-
+            console.log(`Parser.(private)parseNumber() : Expexted to see a number, but got '${token.type}'.`);
             throwError(`Parser error :${ln} Expected a number.`);
         }
 
@@ -137,12 +230,7 @@ export class Parser
         {
             const ln = (lineNumber !== undefined) ? ` (${lineNumber})` : '';
 
-            if (this.enableDevLogging)
-            {
-                console.log(`Parser.(private)parseString() : Expexted to see a string, but got '${token.type}'.`);
-                console.log(JSON.stringify(token, null, 2) + '\n');
-            }
-
+            console.log(`Parser.(private)parseString() : Expexted to see a string, but got '${token.type}'.`);
             throwError(`Parser error :${ln} Expected a string.`);
         }
 
@@ -583,7 +671,6 @@ export class Parser
                     const letter = this.readToken();
                     if (letter.type !== 'var')
                     {
-                        if (this.enableDevLogging) console.log(letter);
                         throwError(`Parser error : (${lineNumber.value}) Cannot parse a letter.`);
                     }
 
@@ -677,6 +764,11 @@ export class Parser
 
     public parse(): ASTRoot
     {
+        if (this.tokenStream.currentPosition !== 0)
+        {
+            this.__resetStream();
+        }
+
         let ASTStatements: Array<ASTStatement> = [];
 
         while (!this.tokenStream.isEndOfStream())
@@ -1061,9 +1153,9 @@ function parseCommaSeparatedValues(expr: Token[]): Array<Token[]>
     return values;
 }
 
-function __isLineBreakOrEOF(token: Token | null): boolean
+function __isLineBreakOrEOF(token: Token | null | undefined): boolean
 {
-    if (token === null) return true;
+    if (token === null || token === undefined) return true;
 
     return token.type === 'spec' && (token.value === 'LINEBREAK' || token.value === 'ENDOFSTREAM');
 }

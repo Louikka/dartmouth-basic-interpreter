@@ -8,11 +8,11 @@ import {
     isWhitespace,
     throwError
 // @ts-ignore
-} from './__helpers__.ts';
+} from './__helpers.ts';
+// @ts-ignore
+import { BASICErrors } from './errors.ts';
 
 
-// Exact implementation of __Streamer class from __helpers__.ts,
-// but tweaked a little bit to match needs of lexer.
 class __CharStream
 {
     private input: string;
@@ -22,39 +22,62 @@ class __CharStream
         return this.input.length;
     }
 
-    private pos: number;
+    private pos = 0;
 
     public get currentPosition(): number
     {
         return this.pos;
     }
 
+    /** Already read string of characters from input. */
+    public get __readAll(): string
+    {
+        return this.input.substring(0, this.pos);
+    }
+
+    private readLine = '';
+
+    /** Already read string of characters from input from last new line character (`\n`). */
+    public get __readLine(): string
+    {
+        return this.readLine;
+    }
+
 
     constructor(s: string)
     {
         this.input = s;
-        this.pos = 0;
     }
 
 
+    public peek(step = 0): string
+    {
+        return this.input.charAt(this.pos + step);
+    }
+
+    /** Alias for `__CharStream.peek(-1)`. */
     public peekBefore(): string
     {
-        return this.input.charAt(this.pos - 1);
+        return this.peek(-1);
     }
-
-    public peek(): string
-    {
-        return this.input.charAt(this.pos);
-    }
-
+    /** Alias for `__CharStream.peek(1)`. */
     public peekAfter(): string
     {
-        return this.input.charAt(this.pos + 1);
+        return this.peek(1);
     }
 
 
     public next(): string
     {
+        if (this.peek() === '\n')
+        {
+            this.readLine = '';
+        }
+        else
+        {
+            this.readLine += this.peek();
+        }
+
         this.pos++;
         return this.peek();
     }
@@ -71,12 +94,24 @@ export class Lexer
 {
     constructor(s: string)
     {
-        this.charStream = new __CharStream(s.trim().toUpperCase());
+        this.showDetailedErrors = true;
+
+        this.originalInput = s.trim().toUpperCase();
+        this.charStream = new __CharStream(this.originalInput);
     }
 
 
 
+    public showDetailedErrors: boolean;
+
+    private originalInput: string;
     private charStream: __CharStream;
+
+
+    public __resetStream()
+    {
+        this.charStream = new __CharStream(this.originalInput);
+    }
 
 
     /**
@@ -148,7 +183,17 @@ export class Lexer
 
             if (char === '\n')
             {
-                throwError(`Lexer error : Encountered line break instead of quote.`);
+                if (this.showDetailedErrors)
+                {
+                    throwError(
+                        `Lexer error : Encountered line break instead of quote.`,
+                        `  | ${ this.charStream.__readLine } <--`
+                    );
+                }
+                else
+                {
+                    throwError(`ERROR : ` + BASICErrors.ILL_FORMULA);
+                }
             }
 
             if (/*char === '\'' || */char === '"')
@@ -210,7 +255,17 @@ export class Lexer
         }
         else
         {
-            throwError(`Lexer error : Undefined keyword : "${keyw}".`);
+            if (this.showDetailedErrors)
+            {
+                throwError(
+                    `Lexer error : Undefined keyword "${keyw}".`,
+                    `  | ${ this.charStream.__readLine } <--`
+                );
+            }
+            else
+            {
+                throwError(`ERROR : ` + BASICErrors.ILL_FORMULA);
+            }
         }
     }
 
@@ -301,12 +356,27 @@ export class Lexer
             };
         }
 
-        throwError(`Lexer error : Cannot handle character : "${char}"`);
+        if (this.showDetailedErrors)
+        {
+            throwError(
+                `Lexer error : Cannot handle character "${char}".`,
+                `  | ${ this.charStream.__readLine } <--`
+            );
+        }
+        else
+        {
+            throwError(`ERROR : ` + BASICErrors.ILL_FORMULA);
+        }
     }
 
 
     public analyse(): Array<Token>
     {
+        if (this.charStream.currentPosition !== 0)
+        {
+            this.__resetStream();
+        }
+
         let tokenList: Array<Token> = [];
 
         while (true)
