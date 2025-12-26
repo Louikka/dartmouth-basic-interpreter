@@ -1,8 +1,10 @@
 import {
-    removeDuplicatesFromArrayOfObjects,
     throwError
 // @ts-ignore
 } from './__helpers__.ts';
+// @ts-ignore
+import { BASICErrors } from './errors.ts';
+
 
 export class Interpreter
 {
@@ -65,7 +67,7 @@ export class Interpreter
 
             if (isENDEncountered && !this.allowedStatementsAfterEND.includes(line.statement))
             {
-                throwError(`END IS NOT LAST.`);
+                throwError(`ERROR : ` + BASICErrors.END_NOT_LAST);
             }
 
             switch (line.statement)
@@ -88,6 +90,11 @@ export class Interpreter
             }
         }
 
+        if (!isENDEncountered)
+        {
+            throwError(`ERROR : ` + BASICErrors.NO_END);
+        }
+
         // generally, should not be used in the `SECOND_LOOP` loop
         isENDEncountered = false;
 
@@ -97,8 +104,15 @@ export class Interpreter
         {
             const line = ASTRootValue[i];
 
+            if (line === undefined) continue;
+
             switch (line.statement)
             {
+                case 'GOTO':
+                {
+                    i = line.value.value - 1;
+                    continue;
+                }
                 case 'END':
                 {
                     break SECOND_LOOP;
