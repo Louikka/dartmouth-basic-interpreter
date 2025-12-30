@@ -1,16 +1,16 @@
 import {
     isDigit, isFunction,
     isKeyword, isKeywordStart,
-    isOperator,
-    isPunctuation,
-    isRelation,
+    isOperator, isRelation,
+    isPunctuation, isWhitespace,
     isVar, isVarStart,
-    isWhitespace,
-    throwError
 // @ts-ignore
 } from './__helpers.ts';
 // @ts-ignore
 import { BASICErrors } from './errors.ts';
+
+
+export let __LAST_ERROR__: string | null = null;
 
 
 class __CharStream
@@ -183,17 +183,8 @@ export class Lexer
 
             if (char === '\n')
             {
-                if (this.showDetailedErrors)
-                {
-                    throwError(
-                        `Lexer error : Encountered line break instead of quote.`,
-                        `  | ${ this.charStream.__readLine } <--`
-                    );
-                }
-                else
-                {
-                    throwError(`ERROR : ` + BASICErrors.ILL_FORMULA);
-                }
+                __LAST_ERROR__ = `Error at Lexer.(private)readString() : Missing quote.`;
+                throw new Error(BASICErrors.ILL_FORMULA);
             }
 
             if (/*char === '\'' || */char === '"')
@@ -255,17 +246,8 @@ export class Lexer
         }
         else
         {
-            if (this.showDetailedErrors)
-            {
-                throwError(
-                    `Lexer error : Undefined keyword "${keyw}".`,
-                    `  | ${ this.charStream.__readLine } <--`
-                );
-            }
-            else
-            {
-                throwError(`ERROR : ` + BASICErrors.ILL_FORMULA);
-            }
+            __LAST_ERROR__ = `Error at Lexer.(private)readKeyword().`;
+            throw new Error(BASICErrors.ILL_FORMULA);
         }
     }
 
@@ -356,17 +338,8 @@ export class Lexer
             };
         }
 
-        if (this.showDetailedErrors)
-        {
-            throwError(
-                `Lexer error : Cannot handle character "${char}".`,
-                `  | ${ this.charStream.__readLine } <--`
-            );
-        }
-        else
-        {
-            throwError(`ERROR : ` + BASICErrors.ILL_FORMULA);
-        }
+        __LAST_ERROR__ = `Error at Lexer.(private)readNextToken() : Cannot handle character "${char}".`;
+        throw new Error(BASICErrors.ILL_FORMULA);
     }
 
 

@@ -1,13 +1,16 @@
 import {
+    BASICConditionOperators,
+    BASICFunctions,
     BASICOperators,
     BASICStatements,
     binTokens,
-    stringifyTokens,
-    throwError
 // @ts-ignore
 } from './__helpers.ts';
 // @ts-ignore
 import { BASICErrors } from './errors.ts';
+
+
+export let __LAST_ERROR__: string | null = null;
 
 
 class __TokenStream
@@ -98,16 +101,11 @@ export class Parser
 {
     constructor(tokenList: Token[])
     {
-        this.showDetailedErrors = true;
-
         this.originalInput = tokenList;
         this.tokenStream = new __TokenStream(this.originalInput);
     }
 
 
-
-    /** Boolean attribute, `true` to show detailed information about errors, `false` to show BASIC errors. */
-    public showDetailedErrors: boolean;
 
     private originalInput: Token[];
     private tokenStream: __TokenStream;
@@ -124,17 +122,8 @@ export class Parser
         const token = this.tokenStream.peek();
         if (token === undefined || token === null)
         {
-            if (this.showDetailedErrors)
-            {
-                throwError(
-                    `Parser error : ${ errorMessage ?? 'Cannot read a token' }.`,
-                    `  | ${ stringifyTokens(this.tokenStream.__readLine) } <--`
-                );
-            }
-            else
-            {
-                throwError(`ERROR : ` + BASICErrors.ILL_FORMULA);
-            }
+            __LAST_ERROR__ = `Error at Parser.(private)readToken() : Cannot read token.`;
+            throw new Error(BASICErrors.ILL_FORMULA);
         }
 
         this.tokenStream.next();
@@ -161,19 +150,10 @@ export class Parser
     private readParentheses(): Token[]
     {
         const __currToken = this.tokenStream.peek();
-        if (__currToken === null || __currToken.value !== '(')
+        if (__currToken === undefined || __currToken === null || __currToken.value !== '(')
         {
-            if (this.showDetailedErrors)
-            {
-                throwError(
-                    `Parser error : Expected a parenthesis.`,
-                    `  | ${ stringifyTokens(this.tokenStream.__readLine) } <--`
-                );
-            }
-            else
-            {
-                throwError(`ERROR : ` + BASICErrors.ILL_FORMULA);
-            }
+            __LAST_ERROR__ = `Error at Parser.(private)readParentheses() : Expected a parenthesis.`;
+            throw new Error(BASICErrors.ILL_FORMULA);
         }
 
         let depth = 1;
@@ -184,17 +164,8 @@ export class Parser
             const token = this.tokenStream.next();
             if (token === undefined || token === null)
             {
-                if (this.showDetailedErrors)
-                {
-                    throwError(
-                        `Parser error : Expected a closing parenthesis.`,
-                        `  | ${ stringifyTokens(this.tokenStream.__readLine) } <--`
-                    );
-                }
-                else
-                {
-                    throwError(`ERROR : ` + BASICErrors.ILL_FORMULA);
-                }
+                __LAST_ERROR__ = `Error at Parser.(private)readParentheses() : Expected a closing parenthesis.`;
+                throw new Error(BASICErrors.ILL_FORMULA);
             }
 
             if (token.value === '(')
@@ -231,19 +202,8 @@ export class Parser
         const token = this.readToken();
         if (token.type !== 'num')
         {
-            if (this.showDetailedErrors)
-            {
-                throwError(
-                    `Parser error : Expected a number.`,
-                    `  | ${ stringifyTokens(this.tokenStream.__readLine) } <--`,
-                    ``,
-                    `Parser.(private)parseNumber() : Expexted a number, but got "${token.type}".`
-                );
-            }
-            else
-            {
-                throwError(`ERROR : ` + BASICErrors.ILL_FORMULA);
-            }
+            __LAST_ERROR__ = `Error at Parser.(private)parseNumber() : Expected a number, but got "${token.type}".`;
+            throw new Error(BASICErrors.ILL_FORMULA);
         }
 
         return {
@@ -257,19 +217,8 @@ export class Parser
         const token = this.readToken();
         if (token.type !== 'str')
         {
-            if (this.showDetailedErrors)
-            {
-                throwError(
-                    `Parser error : Expected a string.`,
-                    `  | ${ stringifyTokens(this.tokenStream.__readLine) } <--`,
-                    ``,
-                    `Parser.(private)parseString() : Expexted a string, but got "${token.type}".`
-                );
-            }
-            else
-            {
-                throwError(`ERROR : ` + BASICErrors.ILL_FORMULA);
-            }
+            __LAST_ERROR__ = `Error at Parser.(private)parseString() : Expected a string, but got "${token.type}".`;
+            throw new Error(BASICErrors.ILL_FORMULA);
         }
 
         return {
@@ -283,19 +232,8 @@ export class Parser
         const token = this.readToken();
         if (token.type !== 'var')
         {
-            if (this.showDetailedErrors)
-            {
-                throwError(
-                    `Parser error : Expected a variable name.`,
-                    `  | ${ stringifyTokens(this.tokenStream.__readLine) } <--`,
-                    ``,
-                    `Parser.(private)parseVariable() : Expexted a variable name, but got "${token.type}".`
-                );
-            }
-            else
-            {
-                throwError(`ERROR : ` + BASICErrors.ILL_FORMULA);
-            }
+            __LAST_ERROR__ = `Error at Parser.(private)parseVariable() : Expected a variable name, but got "${token.type}".`;
+            throw new Error(BASICErrors.ILL_FORMULA);
         }
 
         const nextToken = this.tokenStream.peek();
@@ -347,35 +285,13 @@ export class Parser
         const statement = this.readToken();
         if (statement.type !== 'keyw')
         {
-            if (this.showDetailedErrors)
-            {
-                throwError(
-                    `Parser error : Expected a statement.`,
-                    `  | ${ stringifyTokens(this.tokenStream.__readLine) } <--`,
-                    ``,
-                    `Parser.(private)parseStatement() : Expexted a statement, but got "${statement.type}".`
-                );
-            }
-            else
-            {
-                throwError(`ERROR : ` + BASICErrors.ILL_FORMULA);
-            }
+            __LAST_ERROR__ = `Error at Parser.(private)parseStatement() : Expected a statement, but got "${statement.type}".`;
+            throw new Error(BASICErrors.ILL_FORMULA);
         }
         if (!BASICStatements.includes(statement.value))
         {
-            if (this.showDetailedErrors)
-            {
-                throwError(
-                    `Parser error : Expected a valid BASIC statement.`,
-                    `  | ${ stringifyTokens(this.tokenStream.__readLine) } <--`,
-                    ``,
-                    `Parser.(private)parseStatement() : Expexted a valid BASIC statement, but got "${statement.value}".`
-                );
-            }
-            else
-            {
-                throwError(`ERROR : ` + BASICErrors.ILL_INSTRUCTION);
-            }
+            __LAST_ERROR__ = `Error at Parser.(private)parseStatement() : Expected a valid BASIC statement, but got "${statement.value}".`;
+            throw new Error(BASICErrors.ILL_INSTRUCTION);
         }
 
 
@@ -392,19 +308,8 @@ export class Parser
                 const __relation = this.readToken();
                 if (__relation.type !== 'rel' || __relation.value !== '=')
                 {
-                    if (this.showDetailedErrors)
-                    {
-                        throwError(
-                            `Parser error : Expected an assignment operator ("=").`,
-                            `  | ${ stringifyTokens(this.tokenStream.__readLine) } <--`,
-                            ``,
-                            `Parser.(private)parseStatement() : Expexted an assignment operator ("="), but got "${__relation.value}".`
-                        );
-                    }
-                    else
-                    {
-                        throwError(`ERROR : ` + BASICErrors.INCORR_FORMAT);
-                    }
+                    __LAST_ERROR__ = `Error at Parser.(private)parseStatement() : Trying to parse LET statement : Expected an assignment operator ("="), but got "${__relation.value}".`;
+                    throw new Error(BASICErrors.INCORR_FORMAT);
                 }
 
                 const expression = this.readWhile((t, tl) => !__isLineBreakOrEOF(t));
@@ -441,19 +346,8 @@ export class Parser
                         }
                         else
                         {
-                            if (this.showDetailedErrors)
-                            {
-                                throwError(
-                                    `Parser error : Expected a comma or a line break.`,
-                                    `  | ${ stringifyTokens(this.tokenStream.__readLine) } <--`,
-                                    ``,
-                                    `Parser.(private)parseStatement() : Expexted a comma or a line break.`
-                                );
-                            }
-                            else
-                            {
-                                throwError(`ERROR : ` + BASICErrors.INCORR_FORMAT);
-                            }
+                            __LAST_ERROR__ = `Error at Parser.(private)parseStatement() : Trying to parse READ statement : Expected a comma or a line break.`;
+                            throw new Error(BASICErrors.INCORR_FORMAT);
                         }
                     }
                 }
@@ -487,19 +381,8 @@ export class Parser
                         }
                         else
                         {
-                            if (this.showDetailedErrors)
-                            {
-                                throwError(
-                                    `Parser error : Expected a comma or a line break.`,
-                                    `  | ${ stringifyTokens(this.tokenStream.__readLine) } <--`,
-                                    ``,
-                                    `Parser.(private)parseStatement() : Expexted a comma or a line break.`
-                                );
-                            }
-                            else
-                            {
-                                throwError(`ERROR : ` + BASICErrors.INCORR_FORMAT);
-                            }
+                            __LAST_ERROR__ = `Error at Parser.(private)parseStatement() : Trying to parse DATA statement : Expected a comma or a line break.`;
+                            throw new Error(BASICErrors.INCORR_FORMAT);
                         }
                     }
                 }
@@ -520,19 +403,8 @@ export class Parser
                     const token = this.tokenStream.peek();
                     if (token === undefined || token === null)
                     {
-                        if (this.showDetailedErrors)
-                        {
-                            throwError(
-                                `Parser error : Cannot parse label or expression.`,
-                                `  | ${ stringifyTokens(this.tokenStream.__readLine) } <--`,
-                                ``,
-                                `Parser.(private)parseStatement() : Cannot parse label or expression.`
-                            );
-                        }
-                        else
-                        {
-                            throwError(`ERROR : ` + BASICErrors.INCORR_FORMAT);
-                        }
+                        __LAST_ERROR__ = `Error at Parser.(private)parseStatement() : Trying to parse PRINT statement : Cannot parse label or expression.`;
+                        throw new Error(BASICErrors.INCORR_FORMAT);
                     }
 
                     if (token.type === 'str')
@@ -583,19 +455,8 @@ export class Parser
                 const GOTOLineNumber = this.parseNumber();
                 if (GOTOLineNumber.value < 0 || !Number.isInteger(GOTOLineNumber.value))
                 {
-                    if (this.showDetailedErrors)
-                    {
-                        throwError(
-                            `Parser error : Expected a line number.`,
-                            `  | ${ stringifyTokens(this.tokenStream.__readLine) } <--`,
-                            ``,
-                            `Parser.(private)parseStatement() : Expected a line number (non-negative integer).`
-                        );
-                    }
-                    else
-                    {
-                        throwError(`ERROR : ` + BASICErrors.ILL_LINE_NUM);
-                    }
+                    __LAST_ERROR__ = `Error at Parser.(private)parseStatement() : Trying to parse GOTO statement : Expected a line number (non-negative integer).`;
+                    throw new Error(BASICErrors.ILL_LINE_NUM);
                 }
 
                 return {
@@ -611,19 +472,13 @@ export class Parser
                 const relation = this.readToken();
                 if (relation.type !== 'rel')
                 {
-                    if (this.showDetailedErrors)
-                    {
-                        throwError(
-                            `Parser error : Expected a relation operator.`,
-                            `  | ${ stringifyTokens(this.tokenStream.__readLine) } <--`,
-                            ``,
-                            `Parser.(private)parseStatement() : Expected a relation operator, but got "${relation.type}".`
-                        );
-                    }
-                    else
-                    {
-                        throwError(`ERROR : ` + BASICErrors.INCORR_FORMAT);
-                    }
+                    __LAST_ERROR__ = `Error at Parser.(private)parseStatement() : Trying to parse IF statement : Expected a relation operator, but got "${relation.type}".`;
+                    throw new Error(BASICErrors.INCORR_FORMAT);
+                }
+                if (!BASICConditionOperators.includes(relation.value))
+                {
+                    __LAST_ERROR__ = `Error at Parser.(private)parseStatement() : Trying to parse IF statement : Expected one of the six permissable relation operators ("<", ">", "=", "<=", ">=" or "<>"), but got "${relation.value}".`;
+                    throw new Error(BASICErrors.ILL_REL);
                 }
 
                 const exprRight = this.readWhile((t, tl) => t.type !== 'keyw');
@@ -631,37 +486,15 @@ export class Parser
                 const __THENKeyw = this.readToken();
                 if (__THENKeyw.value !== 'THEN')
                 {
-                    if (this.showDetailedErrors)
-                    {
-                        throwError(
-                            `Parser error : Expected a "THEN" keyword.`,
-                            `  | ${ stringifyTokens(this.tokenStream.__readLine) } <--`,
-                            ``,
-                            `Parser.(private)parseStatement() : Expected a "THEN" keyword, but got "${__THENKeyw.value}".`
-                        );
-                    }
-                    else
-                    {
-                        throwError(`ERROR : ` + BASICErrors.INCORR_FORMAT);
-                    }
+                    __LAST_ERROR__ = `Error at Parser.(private)parseStatement() : Trying to parse IF statement : Expected a "THEN" keyword, but got "${__THENKeyw.value}".`;
+                    throw new Error(BASICErrors.INCORR_FORMAT);
                 }
 
                 const THENLineNumber = this.parseNumber();
                 if (THENLineNumber.value < 0 || !Number.isInteger(THENLineNumber.value))
                 {
-                    if (this.showDetailedErrors)
-                    {
-                        throwError(
-                            `Parser error : Expected a line number.`,
-                            `  | ${ stringifyTokens(this.tokenStream.__readLine) } <--`,
-                            ``,
-                            `Parser.(private)parseStatement() : Expected a line number (non-negative integer).`
-                        );
-                    }
-                    else
-                    {
-                        throwError(`ERROR : ` + BASICErrors.ILL_LINE_NUM);
-                    }
+                    __LAST_ERROR__ = `Error at Parser.(private)parseStatement() : Trying to parse IF statement : Expected a line number (non-negative integer).`;
+                    throw new Error(BASICErrors.ILL_LINE_NUM);
                 }
 
                 return {
@@ -681,38 +514,16 @@ export class Parser
                 const unsubVar = this.parseVariable();
                 if (unsubVar.type !== 'VARIABLE')
                 {
-                    if (this.showDetailedErrors)
-                    {
-                        throwError(
-                            `Parser error : Expected an unsubscripted variable.`,
-                            `  | ${ stringifyTokens(this.tokenStream.__readLine) } <--`,
-                            ``,
-                            `Parser.(private)parseStatement() : Expected an unsubscripted variable.`
-                        );
-                    }
-                    else
-                    {
-                        throwError(`ERROR : ` + BASICErrors.INCORR_FORMAT);
-                    }
+                    __LAST_ERROR__ = `Error at Parser.(private)parseStatement() : Trying to parse FOR statement : Expected an unsubscripted variable.`;
+                    throw new Error(BASICErrors.INCORR_FORMAT);
                 }
 
                 // =
                 const __relation = this.readToken();
                 if (__relation.type !== 'rel' || __relation.value !== '=')
                 {
-                    if (this.showDetailedErrors)
-                    {
-                        throwError(
-                            `Parser error : Expected an assignment operator ("=").`,
-                            `  | ${ stringifyTokens(this.tokenStream.__readLine) } <--`,
-                            ``,
-                            `Parser.(private)parseStatement() : Expexted an assignment operator ("="), but got "${__relation.value}".`
-                        );
-                    }
-                    else
-                    {
-                        throwError(`ERROR : ` + BASICErrors.INCORR_FORMAT);
-                    }
+                    __LAST_ERROR__ = `Error at Parser.(private)parseStatement() : Trying to parse FOR statement : Expected an assignment operator ("="), but got "${__relation.value}".`;
+                    throw new Error(BASICErrors.INCORR_FORMAT);
                 }
 
                 // expression
@@ -722,19 +533,8 @@ export class Parser
                 const __TOKeyw = this.readToken();
                 if (__TOKeyw.value !== 'TO')
                 {
-                    if (this.showDetailedErrors)
-                    {
-                        throwError(
-                            `Parser error : Expected a "TO" keyword.`,
-                            `  | ${ stringifyTokens(this.tokenStream.__readLine) } <--`,
-                            ``,
-                            `Parser.(private)parseStatement() : Expected a "TO" keyword, but got "${__TOKeyw.value}".`
-                        );
-                    }
-                    else
-                    {
-                        throwError(`ERROR : ` + BASICErrors.INCORR_FORMAT);
-                    }
+                    __LAST_ERROR__ = `Error at Parser.(private)parseStatement() : Trying to parse FOR statement : Expected a "TO" keyword, but got "${__TOKeyw.value}".`;
+                    throw new Error(BASICErrors.INCORR_FORMAT);
                 }
 
                 // expression
@@ -758,19 +558,8 @@ export class Parser
                 {
                     if (__STEPKeyw.value !== 'STEP')
                     {
-                        if (this.showDetailedErrors)
-                        {
-                            throwError(
-                                `Parser error : Expected a "STEP" keyword.`,
-                                `  | ${ stringifyTokens(this.tokenStream.__readLine) } <--`,
-                                ``,
-                                `Parser.(private)parseStatement() : Expected a "STEP" keyword, but got "${__STEPKeyw.value}".`
-                            );
-                        }
-                        else
-                        {
-                            throwError(`ERROR : ` + BASICErrors.INCORR_FORMAT);
-                        }
+                        __LAST_ERROR__ = `Error at Parser.(private)parseStatement() : Trying to parse FOR statement : Expected a "STEP" keyword, but got "${__STEPKeyw.value}".`;
+                        throw new Error(BASICErrors.INCORR_FORMAT);
                     }
 
                     this.tokenStream.next();
@@ -794,19 +583,8 @@ export class Parser
                 const unsubVar = this.parseVariable();
                 if (unsubVar.type !== 'VARIABLE')
                 {
-                    if (this.showDetailedErrors)
-                    {
-                        throwError(
-                            `Parser error : Expected an unsubscripted variable.`,
-                            `  | ${ stringifyTokens(this.tokenStream.__readLine) } <--`,
-                            ``,
-                            `Parser.(private)parseStatement() : Expected an unsubscripted variable.`
-                        );
-                    }
-                    else
-                    {
-                        throwError(`ERROR : ` + BASICErrors.INCORR_FORMAT);
-                    }
+                    __LAST_ERROR__ = `Error at Parser.(private)parseStatement() : Trying to parse NEXT statement : Expected an unsubscripted variable.`;
+                    throw new Error(BASICErrors.INCORR_FORMAT);
                 }
 
                 return {
@@ -835,76 +613,32 @@ export class Parser
                 const __FNKeyw = this.readToken();
                 if (__FNKeyw.value !== 'FN')
                 {
-                    if (this.showDetailedErrors)
-                    {
-                        throwError(
-                            `Parser error : Expected a "FN" keyword.`,
-                            `  | ${ stringifyTokens(this.tokenStream.__readLine) } <--`,
-                            ``,
-                            `Parser.(private)parseStatement() : Expected a "FN" keyword, but got "${__FNKeyw.value}".`
-                        );
-                    }
-                    else
-                    {
-                        throwError(`ERROR : ` + BASICErrors.INCORR_FORMAT);
-                    }
+                    __LAST_ERROR__ = `Error at Parser.(private)parseStatement() : Trying to parse DEF statement : Expected a "FN" keyword, but got "${__FNKeyw.value}".`;
+                    throw new Error(BASICErrors.INCORR_FORMAT);
                 }
 
                 // letter
                 const letter = this.readToken();
                 if (letter.type !== 'var')
                 {
-                    if (this.showDetailedErrors)
-                    {
-                        throwError(
-                            `Parser error : Expected a function name.`,
-                            `  | ${ stringifyTokens(this.tokenStream.__readLine) } <--`,
-                            ``,
-                            `Parser.(private)parseStatement() : Expected a function name.`
-                        );
-                    }
-                    else
-                    {
-                        throwError(`ERROR : ` + BASICErrors.INCORR_FORMAT);
-                    }
+                    __LAST_ERROR__ = `Error at Parser.(private)parseStatement() : Trying to parse DEF statement : Expected a function name.`;
+                    throw new Error(BASICErrors.INCORR_FORMAT);
                 }
 
                 // unsubscripted variable
                 const unsubVar = this.readParentheses();
                 if (unsubVar.length > 1 || unsubVar[0].type !== 'var')
                 {
-                    if (this.showDetailedErrors)
-                    {
-                        throwError(
-                            `Parser error : Expected an unsubscripted variable.`,
-                            `  | ${ stringifyTokens(this.tokenStream.__readLine) } <--`,
-                            ``,
-                            `Parser.(private)parseStatement() : Expected an unsubscripted variable.`
-                        );
-                    }
-                    else
-                    {
-                        throwError(`ERROR : ` + BASICErrors.INCORR_FORMAT);
-                    }
+                    __LAST_ERROR__ = `Error at Parser.(private)parseStatement() : Trying to parse DEF statement : Expected an unsubscripted variable.`;
+                    throw new Error(BASICErrors.INCORR_FORMAT);
                 }
 
                 // =
                 const __relation = this.readToken();
                 if (__relation.type !== 'rel' || __relation.value !== '=')
                 {
-                    if (this.showDetailedErrors)
-                    {
-                        throwError(
-                            `Parser error : Expected an assignment operator ("=").`,
-                            `  | ${ stringifyTokens(this.tokenStream.__readLine) } <--`,
-                            ``,
-                            `Parser.(private)parseStatement() : Expexted an assignment operator ("="), but got "${__relation.value}".`
-                        );
-                    }
-                    else
-                    {
-                        throwError(`ERROR : ` + BASICErrors.INCORR_FORMAT);
-                    }
+                    __LAST_ERROR__ = `Error at Parser.(private)parseStatement() : Trying to parse DEF statement : Expected an assignment operator ("="), but got "${__relation.value}".`;
+                    throw new Error(BASICErrors.INCORR_FORMAT);
                 }
 
                 // expression
@@ -928,19 +662,8 @@ export class Parser
                 const GOSUBLineNumber = this.parseNumber();
                 if (GOSUBLineNumber.value < 0 || !Number.isInteger(GOSUBLineNumber.value))
                 {
-                    if (this.showDetailedErrors)
-                    {
-                        throwError(
-                            `Parser error : Expected a line number.`,
-                            `  | ${ stringifyTokens(this.tokenStream.__readLine) } <--`,
-                            ``,
-                            `Parser.(private)parseStatement() : Expected a line number (non-negative integer).`
-                        );
-                    }
-                    else
-                    {
-                        throwError(`ERROR : ` + BASICErrors.ILL_LINE_NUM);
-                    }
+                    __LAST_ERROR__ = `Error at Parser.(private)parseStatement() : Trying to parse GOSUB statement : Expected a line number (non-negative integer).`;
+                    throw new Error(BASICErrors.ILL_LINE_NUM);
                 }
 
                 return {
@@ -958,26 +681,15 @@ export class Parser
             }break;
             case 'DIM':
             {
-                let dims = [];
+                let dims: __Dimension[] = [];
 
                 while (!__isLineBreakOrEOF(this.tokenStream.peek()))
                 {
                     const letter = this.readToken();
                     if (letter.type !== 'var')
                     {
-                        if (this.showDetailedErrors)
-                        {
-                            throwError(
-                                `Parser error : Cannot parse a letter.`,
-                                `  | ${ stringifyTokens(this.tokenStream.__readLine) } <--`,
-                                ``,
-                                `Parser.(private)parseStatement() : Cannot parse a letter.`
-                            );
-                        }
-                        else
-                        {
-                            throwError(`ERROR : ` + BASICErrors.INCORR_FORMAT);
-                        }
+                        __LAST_ERROR__ = `Error at Parser.(private)parseStatement() : Trying to parse DIM statement : Cannot parse a letter.`;
+                        throw new Error(BASICErrors.INCORR_FORMAT);
                     }
 
                     const __paren = this.readParentheses();
@@ -986,61 +698,29 @@ export class Parser
                         const int1 = __paren[0];
                         if (int1.type !== 'num' || !Number.isInteger(int1.value))
                         {
-                            if (this.showDetailedErrors)
-                            {
-                                throwError(
-                                    `Parser error : Expected an integer.`,
-                                    `  | ${ stringifyTokens(this.tokenStream.__readLine) } <--`,
-                                    ``,
-                                    `Parser.(private)parseStatement() : Expected an integer.`
-                                );
-                            }
-                            else
-                            {
-                                throwError(`ERROR : ` + BASICErrors.ILL_CONST);
-                            }
+                            __LAST_ERROR__ = `Error at Parser.(private)parseStatement() : Trying to parse DIM statement : Expected an integer.`;
+                            throw new Error(BASICErrors.ILL_CONST);
                         }
 
                         const __comma = __paren[1];
                         if (__comma === undefined || __comma.value !== ',')
                         {
-                            if (this.showDetailedErrors)
-                            {
-                                throwError(
-                                    `Parser error : Expected a comma.`,
-                                    `  | ${ stringifyTokens(this.tokenStream.__readLine) } <--`,
-                                    ``,
-                                    `Parser.(private)parseStatement() : Expected a comma.`
-                                );
-                            }
-                            else
-                            {
-                                throwError(`ERROR : ` + BASICErrors.INCORR_FORMAT);
-                            }
+                            __LAST_ERROR__ = `Error at Parser.(private)parseStatement() : Trying to parse DIM statement : Expected a comma.`;
+                            throw new Error(BASICErrors.INCORR_FORMAT);
                         }
 
                         const int2 = __paren[2];
                         if (int2 === undefined || int2.type !== 'num' || !Number.isInteger(int2.value))
                         {
-                            if (this.showDetailedErrors)
-                            {
-                                throwError(
-                                    `Parser error : Expected an integer.`,
-                                    `  | ${ stringifyTokens(this.tokenStream.__readLine) } <--`,
-                                    ``,
-                                    `Parser.(private)parseStatement() : Expected an integer.`
-                                );
-                            }
-                            else
-                            {
-                                throwError(`ERROR : ` + BASICErrors.ILL_CONST);
-                            }
+                            __LAST_ERROR__ = `Error at Parser.(private)parseStatement() : Trying to parse DIM statement : Expected an integer.`;
+                            throw new Error(BASICErrors.ILL_CONST);
                         }
 
                         dims.push({
-                            letter : letter.value,
-                            int1 : int1.value,
-                            int2 : int2.value,
+                            type : 'table',
+                            name : letter.value,
+                            dim1 : int1.value,
+                            dim2 : int2.value,
                         });
                     }
                     else if (__paren.length === 1)
@@ -1048,41 +728,20 @@ export class Parser
                         const integer = __paren[0];
                         if (integer.type !== 'num' || !Number.isInteger(integer.value))
                         {
-                            if (this.showDetailedErrors)
-                            {
-                                throwError(
-                                    `Parser error : Expected an integer.`,
-                                    `  | ${ stringifyTokens(this.tokenStream.__readLine) } <--`,
-                                    ``,
-                                    `Parser.(private)parseStatement() : Expected an integer.`
-                                );
-                            }
-                            else
-                            {
-                                throwError(`ERROR : ` + BASICErrors.ILL_CONST);
-                            }
+                            __LAST_ERROR__ = `Error at Parser.(private)parseStatement() : Trying to parse DIM statement : Expected an integer.`;
+                            throw new Error(BASICErrors.ILL_CONST);
                         }
 
                         dims.push({
-                            letter : letter.value,
-                            integer : integer.value,
+                            type : 'list',
+                            name : letter.value,
+                            dim : integer.value,
                         });
                     }
                     else
                     {
-                        if (this.showDetailedErrors)
-                        {
-                            throwError(
-                                `Parser error : Cannot read parentheses.`,
-                                `  | ${ stringifyTokens(this.tokenStream.__readLine) } <--`,
-                                ``,
-                                `Parser.(private)parseStatement() : Cannot read parentheses.`
-                            );
-                        }
-                        else
-                        {
-                            throwError(`ERROR : ` + BASICErrors.INCORR_FORMAT);
-                        }
+                        __LAST_ERROR__ = `Error at Parser.(private)parseStatement() : Trying to parse DIM statement : Cannot read parentheses.`;
+                        throw new Error(BASICErrors.INCORR_FORMAT);
                     }
 
 
@@ -1101,19 +760,8 @@ export class Parser
                         }
                         else
                         {
-                            if (this.showDetailedErrors)
-                            {
-                                throwError(
-                                    `Parser error : Expected a comma or a line break.`,
-                                    `  | ${ stringifyTokens(this.tokenStream.__readLine) } <--`,
-                                    ``,
-                                    `Parser.(private)parseStatement() : Expexted a comma or a line break.`
-                                );
-                            }
-                            else
-                            {
-                                throwError(`ERROR : ` + BASICErrors.INCORR_FORMAT);
-                            }
+                            __LAST_ERROR__ = `Error at Parser.(private)parseStatement() : Trying to parse DIM statement : Expected a comma or a line break.`;
+                            throw new Error(BASICErrors.INCORR_FORMAT);
                         }
                     }
                 }
@@ -1134,13 +782,8 @@ export class Parser
 
             default:
             {
-                throwError(
-                    `Parser error : Cannot parse statement "${statement.value}".`,
-                    `  | ${ stringifyTokens(this.tokenStream.__readLine) } <--`,
-                    ``,
-                    `Parser.(private)parseStatement() : Cannot parse statement (????).`,
-                    `Default in "switch" statement.`
-                );
+                __LAST_ERROR__ = `Error at Parser.(private)parseStatement() : Cannot parse statement "${statement.value}".`;
+                throw new Error();
             }
         }
     }
@@ -1356,6 +999,12 @@ function parseParenthesizedExpression(pExpr: Token[]): ExprNode
         }
         else if (pExpr[0].type === 'func')
         {
+            if (!BASICFunctions.includes(pExpr[0].value))
+            {
+                __LAST_ERROR__ = `Error at parseParenthesizedExpression() : Cannot parse function call : Undefened function "${pExpr[0].value}".`;
+                throw new Error(BASICErrors.ILL_FORMULA);
+            }
+
             return {
                 type : 'FUNCCALL',
                 name : pExpr[0].value,
@@ -1374,16 +1023,19 @@ function parseParenthesizedExpression(pExpr: Token[]): ExprNode
             }
             else
             {
-                throwError(`Parser error : Cannot parse function call : unexpected token : "${pExpr[1]}".`);
+                __LAST_ERROR__ = `Error at parseParenthesizedExpression() : Cannot parse function call : Unexpected token "${pExpr[1]}".`;
+                throw new Error(BASICErrors.ILL_FORMULA);
             }
         }
         else
         {
-            throwError(`Parser error : Cannot parse expression : unexpected token : "${pExpr[0]}".`);
+            __LAST_ERROR__ = `Error at parseParenthesizedExpression() : Cannot parse expression : Unexpected token "${pExpr[0]}".`;
+            throw new Error();
         }
     }
 }
 
+/** Reads first encountered parentheses. */
 function readParenthesesFromList(expr: Token[]): Token[]
 {
     let depth = 0;
@@ -1412,18 +1064,20 @@ function readParenthesesFromList(expr: Token[]): Token[]
     return __return;
 }
 
+
+type __preBinNode = __preBinNodeOk | __preBinNodeNof;
+
 /** If operator found. */
 type __preBinNodeOk = {
     operator: string;
     left: Token[];
     right: Token[];
-}
+};
 /** if operator not found. */
 type __preBinNodeNof = {
     operator: null;
     expression: Token[];
-}
-type __preBinNode = __preBinNodeOk | __preBinNodeNof;
+};
 
 function __parseParenthesizedBinaryExpression(pBinExpr: Token[]): __preBinNode
 {

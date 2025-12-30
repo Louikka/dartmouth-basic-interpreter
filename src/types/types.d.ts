@@ -1,3 +1,30 @@
+type __BASICOperator = '+' | '-' | '*' | '/' | '^';
+type __BASICConditionOperator = '<' | '>' | '=' | '<=' | '>=' | '<>';
+
+
+
+type __FuncDef = {
+    /** `FN` + single letter. */
+    name: string;
+    variable: UnsubVarNode;
+    expression: ExprNode;
+};
+
+type __Dimension = __ListDim | __TableDim;
+type __ListDim = {
+    type: 'list';
+    name: string;
+    dim: number;
+};
+type __TableDim = {
+    type: 'table';
+    name: string;
+    dim1: number;
+    dim2: number;
+};
+
+
+
 type Token = PuncToken | NumToken | StrToken | KeywToken | VarToken | FuncToken | OperToken | RelToken | SpecToken;
 
 type PuncToken = {
@@ -85,7 +112,7 @@ type BinNode = {
     left: ExprNode;
     right: ExprNode;
 };
-type ExprNode = NumNode | VarNode | ListNode | TableNode | BinNode | FuncNode;
+type ExprNode = NumNode | VarNode | BinNode | FuncNode;
 
 
 
@@ -157,12 +184,7 @@ type STOPStatement = {
 type DEFStatement = {
     line_number: number;
     statement: 'DEF';
-    value: {
-        /** `FN` + single letter. */
-        name: string;
-        variable: UnsubVarNode;
-        expression: ExprNode;
-    };
+    value: __FuncDef;
 };
 type GOSUBStatement = {
     line_number: number;
@@ -177,14 +199,7 @@ type RETURNStatement = {
 type DIMStatement = {
     line_number: number;
     statement: 'DIM';
-    value: Array<{
-        letter: string;
-        integer: number;
-    } | {
-        letter: string;
-        int1: number;
-        int2: number;
-    }>;
+    value: Array<__Dimension>;
 };
 type REMStatement = {
     line_number: number;
