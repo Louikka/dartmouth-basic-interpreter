@@ -10,7 +10,15 @@ import {
 import { BASICErrors } from './errors.ts';
 
 
-export let __LAST_ERROR__: string | null = null;
+type ErrorLog = {
+    basic: string | null;
+    extended: string | null;
+}
+
+export const __ERROR_LOG__: ErrorLog = {
+    basic : null,
+    extended : null,
+};
 
 
 class __TokenStream
@@ -122,8 +130,9 @@ export class Parser
         const token = this.tokenStream.peek();
         if (token === undefined || token === null)
         {
-            __LAST_ERROR__ = `Error at Parser.(private)readToken() : Cannot read token.`;
-            throw new Error(BASICErrors.ILL_FORMULA);
+            __ERROR_LOG__.basic = BASICErrors.ILL_FORMULA;
+            __ERROR_LOG__.extended = `Error at Parser.(private)readToken() : Cannot read token.`;
+            throw new Error();
         }
 
         this.tokenStream.next();
@@ -152,8 +161,9 @@ export class Parser
         const __currToken = this.tokenStream.peek();
         if (__currToken === undefined || __currToken === null || __currToken.value !== '(')
         {
-            __LAST_ERROR__ = `Error at Parser.(private)readParentheses() : Expected a parenthesis.`;
-            throw new Error(BASICErrors.ILL_FORMULA);
+            __ERROR_LOG__.basic = BASICErrors.ILL_FORMULA;
+            __ERROR_LOG__.extended = `Error at Parser.(private)readParentheses() : Expected a parenthesis.`;
+            throw new Error();
         }
 
         let depth = 1;
@@ -164,8 +174,9 @@ export class Parser
             const token = this.tokenStream.next();
             if (token === undefined || token === null)
             {
-                __LAST_ERROR__ = `Error at Parser.(private)readParentheses() : Expected a closing parenthesis.`;
-                throw new Error(BASICErrors.ILL_FORMULA);
+                __ERROR_LOG__.basic = BASICErrors.ILL_FORMULA;
+                __ERROR_LOG__.extended = `Error at Parser.(private)readParentheses() : Expected a closing parenthesis.`;
+                throw new Error();
             }
 
             if (token.value === '(')
@@ -202,8 +213,9 @@ export class Parser
         const token = this.readToken();
         if (token.type !== 'num')
         {
-            __LAST_ERROR__ = `Error at Parser.(private)parseNumber() : Expected a number, but got "${token.type}".`;
-            throw new Error(BASICErrors.ILL_FORMULA);
+            __ERROR_LOG__.basic = BASICErrors.ILL_FORMULA;
+            __ERROR_LOG__.extended = `Error at Parser.(private)parseNumber() : Expected a number, but got "${token.type}".`;
+            throw new Error();
         }
 
         return {
@@ -217,8 +229,9 @@ export class Parser
         const token = this.readToken();
         if (token.type !== 'str')
         {
-            __LAST_ERROR__ = `Error at Parser.(private)parseString() : Expected a string, but got "${token.type}".`;
-            throw new Error(BASICErrors.ILL_FORMULA);
+            __ERROR_LOG__.basic = BASICErrors.ILL_FORMULA;
+            __ERROR_LOG__.extended = `Error at Parser.(private)parseString() : Expected a string, but got "${token.type}".`;
+            throw new Error();
         }
 
         return {
@@ -232,8 +245,9 @@ export class Parser
         const token = this.readToken();
         if (token.type !== 'var')
         {
-            __LAST_ERROR__ = `Error at Parser.(private)parseVariable() : Expected a variable name, but got "${token.type}".`;
-            throw new Error(BASICErrors.ILL_FORMULA);
+            __ERROR_LOG__.basic = BASICErrors.ILL_FORMULA;
+            __ERROR_LOG__.extended = `Error at Parser.(private)parseVariable() : Expected a variable name, but got "${token.type}".`;
+            throw new Error();
         }
 
         const nextToken = this.tokenStream.peek();
@@ -285,13 +299,15 @@ export class Parser
         const statement = this.readToken();
         if (statement.type !== 'keyw')
         {
-            __LAST_ERROR__ = `Error at Parser.(private)parseStatement() : Expected a statement, but got "${statement.type}".`;
-            throw new Error(BASICErrors.ILL_FORMULA);
+            __ERROR_LOG__.basic = BASICErrors.ILL_FORMULA;
+            __ERROR_LOG__.extended = `Error at Parser.(private)parseStatement() : Expected a statement, but got "${statement.type}".`;
+            throw new Error();
         }
         if (!BASICStatements.includes(statement.value))
         {
-            __LAST_ERROR__ = `Error at Parser.(private)parseStatement() : Expected a valid BASIC statement, but got "${statement.value}".`;
-            throw new Error(BASICErrors.ILL_INSTRUCTION);
+            __ERROR_LOG__.basic = BASICErrors.ILL_INSTRUCTION;
+            __ERROR_LOG__.extended = `Error at Parser.(private)parseStatement() : Expected a valid BASIC statement, but got "${statement.value}".`;
+            throw new Error();
         }
 
 
@@ -308,8 +324,9 @@ export class Parser
                 const __relation = this.readToken();
                 if (__relation.type !== 'rel' || __relation.value !== '=')
                 {
-                    __LAST_ERROR__ = `Error at Parser.(private)parseStatement() : Trying to parse LET statement : Expected an assignment operator ("="), but got "${__relation.value}".`;
-                    throw new Error(BASICErrors.INCORR_FORMAT);
+                    __ERROR_LOG__.basic = BASICErrors.INCORR_FORMAT;
+                    __ERROR_LOG__.extended = `Error at Parser.(private)parseStatement() : Trying to parse LET statement : Expected an assignment operator ("="), but got "${__relation.value}".`;
+                    throw new Error();
                 }
 
                 const expression = this.readWhile((t, tl) => !__isLineBreakOrEOF(t));
@@ -346,8 +363,9 @@ export class Parser
                         }
                         else
                         {
-                            __LAST_ERROR__ = `Error at Parser.(private)parseStatement() : Trying to parse READ statement : Expected a comma or a line break.`;
-                            throw new Error(BASICErrors.INCORR_FORMAT);
+                            __ERROR_LOG__.basic = BASICErrors.INCORR_FORMAT;
+                            __ERROR_LOG__.extended = `Error at Parser.(private)parseStatement() : Trying to parse READ statement : Expected a comma or a line break.`;
+                            throw new Error();
                         }
                     }
                 }
@@ -381,8 +399,9 @@ export class Parser
                         }
                         else
                         {
-                            __LAST_ERROR__ = `Error at Parser.(private)parseStatement() : Trying to parse DATA statement : Expected a comma or a line break.`;
-                            throw new Error(BASICErrors.INCORR_FORMAT);
+                            __ERROR_LOG__.basic = BASICErrors.INCORR_FORMAT;
+                            __ERROR_LOG__.extended = `Error at Parser.(private)parseStatement() : Trying to parse DATA statement : Expected a comma or a line break.`;
+                            throw new Error();
                         }
                     }
                 }
@@ -403,8 +422,9 @@ export class Parser
                     const token = this.tokenStream.peek();
                     if (token === undefined || token === null)
                     {
-                        __LAST_ERROR__ = `Error at Parser.(private)parseStatement() : Trying to parse PRINT statement : Cannot parse label or expression.`;
-                        throw new Error(BASICErrors.INCORR_FORMAT);
+                        __ERROR_LOG__.basic = BASICErrors.INCORR_FORMAT;
+                        __ERROR_LOG__.extended = `Error at Parser.(private)parseStatement() : Trying to parse PRINT statement : Cannot parse label or expression.`;
+                        throw new Error();
                     }
 
                     if (token.type === 'str')
@@ -455,8 +475,9 @@ export class Parser
                 const GOTOLineNumber = this.parseNumber();
                 if (GOTOLineNumber.value < 0 || !Number.isInteger(GOTOLineNumber.value))
                 {
-                    __LAST_ERROR__ = `Error at Parser.(private)parseStatement() : Trying to parse GOTO statement : Expected a line number (non-negative integer).`;
-                    throw new Error(BASICErrors.ILL_LINE_NUM);
+                    __ERROR_LOG__.basic = BASICErrors.ILL_LINE_NUM;
+                    __ERROR_LOG__.extended = `Error at Parser.(private)parseStatement() : Trying to parse GOTO statement : Expected a line number (non-negative integer).`;
+                    throw new Error();
                 }
 
                 return {
@@ -472,13 +493,15 @@ export class Parser
                 const relation = this.readToken();
                 if (relation.type !== 'rel')
                 {
-                    __LAST_ERROR__ = `Error at Parser.(private)parseStatement() : Trying to parse IF statement : Expected a relation operator, but got "${relation.type}".`;
-                    throw new Error(BASICErrors.INCORR_FORMAT);
+                    __ERROR_LOG__.basic = BASICErrors.INCORR_FORMAT;
+                    __ERROR_LOG__.extended = `Error at Parser.(private)parseStatement() : Trying to parse IF statement : Expected a relation operator, but got "${relation.type}".`;
+                    throw new Error();
                 }
                 if (!BASICConditionOperators.includes(relation.value))
                 {
-                    __LAST_ERROR__ = `Error at Parser.(private)parseStatement() : Trying to parse IF statement : Expected one of the six permissable relation operators ("<", ">", "=", "<=", ">=" or "<>"), but got "${relation.value}".`;
-                    throw new Error(BASICErrors.ILL_REL);
+                    __ERROR_LOG__.basic = BASICErrors.ILL_REL;
+                    __ERROR_LOG__.extended = `Error at Parser.(private)parseStatement() : Trying to parse IF statement : Expected one of the six permissable relation operators ("<", ">", "=", "<=", ">=" or "<>"), but got "${relation.value}".`;
+                    throw new Error();
                 }
 
                 const exprRight = this.readWhile((t, tl) => t.type !== 'keyw');
@@ -486,15 +509,17 @@ export class Parser
                 const __THENKeyw = this.readToken();
                 if (__THENKeyw.value !== 'THEN')
                 {
-                    __LAST_ERROR__ = `Error at Parser.(private)parseStatement() : Trying to parse IF statement : Expected a "THEN" keyword, but got "${__THENKeyw.value}".`;
-                    throw new Error(BASICErrors.INCORR_FORMAT);
+                    __ERROR_LOG__.basic = BASICErrors.INCORR_FORMAT;
+                    __ERROR_LOG__.extended = `Error at Parser.(private)parseStatement() : Trying to parse IF statement : Expected a "THEN" keyword, but got "${__THENKeyw.value}".`;
+                    throw new Error();
                 }
 
                 const THENLineNumber = this.parseNumber();
                 if (THENLineNumber.value < 0 || !Number.isInteger(THENLineNumber.value))
                 {
-                    __LAST_ERROR__ = `Error at Parser.(private)parseStatement() : Trying to parse IF statement : Expected a line number (non-negative integer).`;
-                    throw new Error(BASICErrors.ILL_LINE_NUM);
+                    __ERROR_LOG__.basic = BASICErrors.ILL_LINE_NUM;
+                    __ERROR_LOG__.extended = `Error at Parser.(private)parseStatement() : Trying to parse IF statement : Expected a line number (non-negative integer).`;
+                    throw new Error();
                 }
 
                 return {
@@ -514,16 +539,18 @@ export class Parser
                 const unsubVar = this.parseVariable();
                 if (unsubVar.type !== 'VARIABLE')
                 {
-                    __LAST_ERROR__ = `Error at Parser.(private)parseStatement() : Trying to parse FOR statement : Expected an unsubscripted variable.`;
-                    throw new Error(BASICErrors.INCORR_FORMAT);
+                    __ERROR_LOG__.basic = BASICErrors.INCORR_FORMAT;
+                    __ERROR_LOG__.extended = `Error at Parser.(private)parseStatement() : Trying to parse FOR statement : Expected an unsubscripted variable.`;
+                    throw new Error();
                 }
 
                 // =
                 const __relation = this.readToken();
                 if (__relation.type !== 'rel' || __relation.value !== '=')
                 {
-                    __LAST_ERROR__ = `Error at Parser.(private)parseStatement() : Trying to parse FOR statement : Expected an assignment operator ("="), but got "${__relation.value}".`;
-                    throw new Error(BASICErrors.INCORR_FORMAT);
+                    __ERROR_LOG__.basic = BASICErrors.INCORR_FORMAT;
+                    __ERROR_LOG__.extended = `Error at Parser.(private)parseStatement() : Trying to parse FOR statement : Expected an assignment operator ("="), but got "${__relation.value}".`;
+                    throw new Error();
                 }
 
                 // expression
@@ -533,8 +560,9 @@ export class Parser
                 const __TOKeyw = this.readToken();
                 if (__TOKeyw.value !== 'TO')
                 {
-                    __LAST_ERROR__ = `Error at Parser.(private)parseStatement() : Trying to parse FOR statement : Expected a "TO" keyword, but got "${__TOKeyw.value}".`;
-                    throw new Error(BASICErrors.INCORR_FORMAT);
+                    __ERROR_LOG__.basic = BASICErrors.INCORR_FORMAT;
+                    __ERROR_LOG__.extended = `Error at Parser.(private)parseStatement() : Trying to parse FOR statement : Expected a "TO" keyword, but got "${__TOKeyw.value}".`;
+                    throw new Error();
                 }
 
                 // expression
@@ -558,8 +586,9 @@ export class Parser
                 {
                     if (__STEPKeyw.value !== 'STEP')
                     {
-                        __LAST_ERROR__ = `Error at Parser.(private)parseStatement() : Trying to parse FOR statement : Expected a "STEP" keyword, but got "${__STEPKeyw.value}".`;
-                        throw new Error(BASICErrors.INCORR_FORMAT);
+                        __ERROR_LOG__.basic = BASICErrors.INCORR_FORMAT;
+                        __ERROR_LOG__.extended = `Error at Parser.(private)parseStatement() : Trying to parse FOR statement : Expected a "STEP" keyword, but got "${__STEPKeyw.value}".`;
+                        throw new Error();
                     }
 
                     this.tokenStream.next();
@@ -583,8 +612,9 @@ export class Parser
                 const unsubVar = this.parseVariable();
                 if (unsubVar.type !== 'VARIABLE')
                 {
-                    __LAST_ERROR__ = `Error at Parser.(private)parseStatement() : Trying to parse NEXT statement : Expected an unsubscripted variable.`;
-                    throw new Error(BASICErrors.INCORR_FORMAT);
+                    __ERROR_LOG__.basic = BASICErrors.INCORR_FORMAT;
+                    __ERROR_LOG__.extended = `Error at Parser.(private)parseStatement() : Trying to parse NEXT statement : Expected an unsubscripted variable.`;
+                    throw new Error();
                 }
 
                 return {
@@ -613,32 +643,36 @@ export class Parser
                 const __FNKeyw = this.readToken();
                 if (__FNKeyw.value !== 'FN')
                 {
-                    __LAST_ERROR__ = `Error at Parser.(private)parseStatement() : Trying to parse DEF statement : Expected a "FN" keyword, but got "${__FNKeyw.value}".`;
-                    throw new Error(BASICErrors.INCORR_FORMAT);
+                    __ERROR_LOG__.basic = BASICErrors.INCORR_FORMAT;
+                    __ERROR_LOG__.extended = `Error at Parser.(private)parseStatement() : Trying to parse DEF statement : Expected a "FN" keyword, but got "${__FNKeyw.value}".`;
+                    throw new Error();
                 }
 
                 // letter
                 const letter = this.readToken();
                 if (letter.type !== 'var')
                 {
-                    __LAST_ERROR__ = `Error at Parser.(private)parseStatement() : Trying to parse DEF statement : Expected a function name.`;
-                    throw new Error(BASICErrors.INCORR_FORMAT);
+                    __ERROR_LOG__.basic = BASICErrors.INCORR_FORMAT;
+                    __ERROR_LOG__.extended = `Error at Parser.(private)parseStatement() : Trying to parse DEF statement : Expected a function name.`;
+                    throw new Error();
                 }
 
                 // unsubscripted variable
                 const unsubVar = this.readParentheses();
                 if (unsubVar.length > 1 || unsubVar[0].type !== 'var')
                 {
-                    __LAST_ERROR__ = `Error at Parser.(private)parseStatement() : Trying to parse DEF statement : Expected an unsubscripted variable.`;
-                    throw new Error(BASICErrors.INCORR_FORMAT);
+                    __ERROR_LOG__.basic = BASICErrors.INCORR_FORMAT;
+                    __ERROR_LOG__.extended = `Error at Parser.(private)parseStatement() : Trying to parse DEF statement : Expected an unsubscripted variable.`;
+                    throw new Error();
                 }
 
                 // =
                 const __relation = this.readToken();
                 if (__relation.type !== 'rel' || __relation.value !== '=')
                 {
-                    __LAST_ERROR__ = `Error at Parser.(private)parseStatement() : Trying to parse DEF statement : Expected an assignment operator ("="), but got "${__relation.value}".`;
-                    throw new Error(BASICErrors.INCORR_FORMAT);
+                    __ERROR_LOG__.basic = BASICErrors.INCORR_FORMAT;
+                    __ERROR_LOG__.extended = `Error at Parser.(private)parseStatement() : Trying to parse DEF statement : Expected an assignment operator ("="), but got "${__relation.value}".`;
+                    throw new Error();
                 }
 
                 // expression
@@ -662,8 +696,9 @@ export class Parser
                 const GOSUBLineNumber = this.parseNumber();
                 if (GOSUBLineNumber.value < 0 || !Number.isInteger(GOSUBLineNumber.value))
                 {
-                    __LAST_ERROR__ = `Error at Parser.(private)parseStatement() : Trying to parse GOSUB statement : Expected a line number (non-negative integer).`;
-                    throw new Error(BASICErrors.ILL_LINE_NUM);
+                    __ERROR_LOG__.basic = BASICErrors.ILL_LINE_NUM;
+                    __ERROR_LOG__.extended = `Error at Parser.(private)parseStatement() : Trying to parse GOSUB statement : Expected a line number (non-negative integer).`;
+                    throw new Error();
                 }
 
                 return {
@@ -688,8 +723,9 @@ export class Parser
                     const letter = this.readToken();
                     if (letter.type !== 'var')
                     {
-                        __LAST_ERROR__ = `Error at Parser.(private)parseStatement() : Trying to parse DIM statement : Cannot parse a letter.`;
-                        throw new Error(BASICErrors.INCORR_FORMAT);
+                        __ERROR_LOG__.basic = BASICErrors.INCORR_FORMAT;
+                        __ERROR_LOG__.extended = `Error at Parser.(private)parseStatement() : Trying to parse DIM statement : Cannot parse a letter.`;
+                        throw new Error();
                     }
 
                     const __paren = this.readParentheses();
@@ -698,22 +734,25 @@ export class Parser
                         const int1 = __paren[0];
                         if (int1.type !== 'num' || !Number.isInteger(int1.value))
                         {
-                            __LAST_ERROR__ = `Error at Parser.(private)parseStatement() : Trying to parse DIM statement : Expected an integer.`;
-                            throw new Error(BASICErrors.ILL_CONST);
+                            __ERROR_LOG__.basic = BASICErrors.ILL_CONST;
+                            __ERROR_LOG__.extended = `Error at Parser.(private)parseStatement() : Trying to parse DIM statement : Expected an integer.`;
+                            throw new Error();
                         }
 
                         const __comma = __paren[1];
                         if (__comma === undefined || __comma.value !== ',')
                         {
-                            __LAST_ERROR__ = `Error at Parser.(private)parseStatement() : Trying to parse DIM statement : Expected a comma.`;
-                            throw new Error(BASICErrors.INCORR_FORMAT);
+                            __ERROR_LOG__.basic = BASICErrors.INCORR_FORMAT;
+                            __ERROR_LOG__.extended = `Error at Parser.(private)parseStatement() : Trying to parse DIM statement : Expected a comma.`;
+                            throw new Error();
                         }
 
                         const int2 = __paren[2];
                         if (int2 === undefined || int2.type !== 'num' || !Number.isInteger(int2.value))
                         {
-                            __LAST_ERROR__ = `Error at Parser.(private)parseStatement() : Trying to parse DIM statement : Expected an integer.`;
-                            throw new Error(BASICErrors.ILL_CONST);
+                            __ERROR_LOG__.basic = BASICErrors.ILL_CONST;
+                            __ERROR_LOG__.extended = `Error at Parser.(private)parseStatement() : Trying to parse DIM statement : Expected an integer.`;
+                            throw new Error();
                         }
 
                         dims.push({
@@ -728,8 +767,9 @@ export class Parser
                         const integer = __paren[0];
                         if (integer.type !== 'num' || !Number.isInteger(integer.value))
                         {
-                            __LAST_ERROR__ = `Error at Parser.(private)parseStatement() : Trying to parse DIM statement : Expected an integer.`;
-                            throw new Error(BASICErrors.ILL_CONST);
+                            __ERROR_LOG__.basic = BASICErrors.ILL_CONST;
+                            __ERROR_LOG__.extended = `Error at Parser.(private)parseStatement() : Trying to parse DIM statement : Expected an integer.`;
+                            throw new Error();
                         }
 
                         dims.push({
@@ -740,8 +780,9 @@ export class Parser
                     }
                     else
                     {
-                        __LAST_ERROR__ = `Error at Parser.(private)parseStatement() : Trying to parse DIM statement : Cannot read parentheses.`;
-                        throw new Error(BASICErrors.INCORR_FORMAT);
+                        __ERROR_LOG__.basic = BASICErrors.INCORR_FORMAT;
+                        __ERROR_LOG__.extended = `Error at Parser.(private)parseStatement() : Trying to parse DIM statement : Cannot read parentheses.`;
+                        throw new Error();
                     }
 
 
@@ -760,8 +801,9 @@ export class Parser
                         }
                         else
                         {
-                            __LAST_ERROR__ = `Error at Parser.(private)parseStatement() : Trying to parse DIM statement : Expected a comma or a line break.`;
-                            throw new Error(BASICErrors.INCORR_FORMAT);
+                            __ERROR_LOG__.basic = BASICErrors.INCORR_FORMAT;
+                            __ERROR_LOG__.extended = `Error at Parser.(private)parseStatement() : Trying to parse DIM statement : Expected a comma or a line break.`;
+                            throw new Error();
                         }
                     }
                 }
@@ -782,7 +824,7 @@ export class Parser
 
             default:
             {
-                __LAST_ERROR__ = `Error at Parser.(private)parseStatement() : Cannot parse statement "${statement.value}".`;
+                __ERROR_LOG__.extended = `Error at Parser.(private)parseStatement() : Cannot parse statement "${statement.value}".`;
                 throw new Error();
             }
         }
@@ -1001,8 +1043,9 @@ function parseParenthesizedExpression(pExpr: Token[]): ExprNode
         {
             if (!BASICFunctions.includes(pExpr[0].value))
             {
-                __LAST_ERROR__ = `Error at parseParenthesizedExpression() : Cannot parse function call : Undefened function "${pExpr[0].value}".`;
-                throw new Error(BASICErrors.ILL_FORMULA);
+                __ERROR_LOG__.basic = BASICErrors.ILL_FORMULA;
+                __ERROR_LOG__.extended = `Error at parseParenthesizedExpression() : Cannot parse function call : Undefened function "${pExpr[0].value}".`;
+                throw new Error();
             }
 
             return {
@@ -1023,13 +1066,14 @@ function parseParenthesizedExpression(pExpr: Token[]): ExprNode
             }
             else
             {
-                __LAST_ERROR__ = `Error at parseParenthesizedExpression() : Cannot parse function call : Unexpected token "${pExpr[1]}".`;
-                throw new Error(BASICErrors.ILL_FORMULA);
+                __ERROR_LOG__.basic = BASICErrors.ILL_FORMULA;
+                __ERROR_LOG__.extended = `Error at parseParenthesizedExpression() : Cannot parse function call : Unexpected token "${pExpr[1]}".`;
+                throw new Error();
             }
         }
         else
         {
-            __LAST_ERROR__ = `Error at parseParenthesizedExpression() : Cannot parse expression : Unexpected token "${pExpr[0]}".`;
+            __ERROR_LOG__.extended = `Error at parseParenthesizedExpression() : Cannot parse expression : Unexpected token "${pExpr[0]}".`;
             throw new Error();
         }
     }

@@ -10,7 +10,15 @@ import {
 import { BASICErrors } from './errors.ts';
 
 
-export let __LAST_ERROR__: string | null = null;
+type ErrorLog = {
+    basic: string | null;
+    extended: string | null;
+}
+
+export const __ERROR_LOG__: ErrorLog = {
+    basic : null,
+    extended : null,
+};
 
 
 class __CharStream
@@ -183,8 +191,9 @@ export class Lexer
 
             if (char === '\n')
             {
-                __LAST_ERROR__ = `Error at Lexer.(private)readString() : Missing quote.`;
-                throw new Error(BASICErrors.ILL_FORMULA);
+                __ERROR_LOG__.basic = BASICErrors.ILL_FORMULA
+                __ERROR_LOG__.extended = `Error at Lexer.(private)readString() : Missing quote.`;
+                throw new Error();
             }
 
             if (/*char === '\'' || */char === '"')
@@ -246,8 +255,9 @@ export class Lexer
         }
         else
         {
-            __LAST_ERROR__ = `Error at Lexer.(private)readKeyword().`;
-            throw new Error(BASICErrors.ILL_FORMULA);
+            __ERROR_LOG__.basic = BASICErrors.ILL_FORMULA
+            __ERROR_LOG__.extended = `Error at Lexer.(private)readKeyword().`;
+            throw new Error();
         }
     }
 
@@ -338,8 +348,9 @@ export class Lexer
             };
         }
 
-        __LAST_ERROR__ = `Error at Lexer.(private)readNextToken() : Cannot handle character "${char}".`;
-        throw new Error(BASICErrors.ILL_FORMULA);
+        __ERROR_LOG__.basic = BASICErrors.ILL_FORMULA
+        __ERROR_LOG__.extended = `Error at Lexer.(private)readNextToken() : Cannot handle character "${char}".`;
+        throw new Error();
     }
 
 
