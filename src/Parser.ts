@@ -462,7 +462,7 @@ export class Parser
                     }
                 }
 
-                if (!isLastIsComma) data.push({ type : 'STRING', value : '\n', });
+                //if (!isLastIsComma) data.push({ type : 'STRING', value : '\n', });
 
                 return {
                     line_number : lineNumber.value,

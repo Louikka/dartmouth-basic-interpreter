@@ -1,5 +1,6 @@
-/* constants */
+/* Constants related to BASIC ************************************************/
 
+/** List of statements which can appear as an instruction after the line number. */
 export const BASICStatements = [
     'LET',
     'READ',
@@ -25,6 +26,7 @@ export const BASICFunctions = [ 'SIN', 'COS', 'TAN', 'ATN', 'EXP', 'ABS', 'LOG',
 
 export const BASICOperators = [ '+', '-', '*', '/', '^', ];
 
+export const BASICRelationOperators = [ '<', '>', '=', '<=', '>=', '<>', ];
 export const BASICConditionOperators = [ '<', '>', '=', '<=', '>=', '<>', ];
 
 /** Do not use for direct comparison. */
@@ -61,82 +63,19 @@ export const binTokens = {
 
 
 
-export function throwError(...message: string[]): never
+export function throwError(message: string, ...optionalParams: any[]): never
 {
-    for (const msg of message)
-    {
-        console.error(msg.trim());
-    }
-
+    console.error(message, ...optionalParams);
     process.exit(0);
 }
 
 
 
-/* test functions */
-
-export function isStatement(s: string)
+export function isNumeric(v: any): boolean
 {
-    return BASICStatements.includes(s);
-}
-
-export function isKeywordStart(char: string): boolean
-{
-    return /[A-Z]/i.test(char);
-}
-
-export function isKeyword(s: string): boolean
-{
-    return BASICKeywords.includes(s);
-}
-
-export function isFunction(s: string): boolean
-{
-    return BASICFunctions.includes(s);
-}
-
-export function isDigit(char: string): boolean
-{
-    return /\d/.test(char);
-}
-
-export function isVarStart(char: string): boolean
-{
-    return /[A-Z]/i.test(char);
-}
-
-/** Tests if `char` can be as part of the variable name (except first character -> see `isVarStart`). */
-export function isVar(char: string): boolean
-{
-    return /[0-9]/i.test(char);
-}
-
-export function isOperator(char: string): boolean
-{
-    return BASICOperators.includes(char);
-}
-
-export function isRelation(char: string): boolean
-{
-    return BASICConditionOperators.includes(char);
-}
-
-export function isPunctuation(char: string): boolean
-{
-    return [ ',', '(', ')', ].includes(char);
-}
-
-export function isWhitespace(char: string): boolean
-{
-    return ' \t\r'.includes(char);
-}
-
-
-export function isNumeric(str: string): boolean
-{
-    if (typeof str === 'number') return true;
-    if (typeof str !== 'string') return false;
-    return !isNaN(+str) && !isNaN(parseFloat(str));
+    if (typeof v === 'number') return true;
+    if (typeof v !== 'string') return false;
+    return !isNaN(+v) && !isNaN(parseFloat(v));
 }
 
 
@@ -241,4 +180,31 @@ export function removeDuplicatesFromArrayOfObjects<T, K extends keyof T>(arr: Ar
     });
 
     return uniqueReversed.reverse();
+}
+
+export function padStringToModulo(s: string, from: 'start' | 'end', mod: number): string
+{
+    if (from === 'start')
+    {
+        return ' '.repeat(mod - s.length % mod) + s;
+    }
+    else
+    {
+        return s + ' '.repeat(mod - s.length % mod);
+    }
+}
+
+// Input  : [ 1, 2, 3, 4, 5, 6, 7, 8, 9, 10 ]
+// Output : [ [1, 2, 3], [4, 5, 6], [7, 8, 9], [10] ]
+export function sliceArrayIntoChunks<T>(arr: Array<T>, chunkSize: number): Array<T[]>
+{
+    let res = [];
+
+    for (let i = 0; i < arr.length; i += chunkSize)
+    {
+        const chunk = arr.slice(i, i + chunkSize);
+        res.push(chunk);
+    }
+
+    return res;
 }

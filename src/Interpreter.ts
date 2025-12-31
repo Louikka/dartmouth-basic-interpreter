@@ -1,4 +1,6 @@
 // @ts-ignore
+import { padStringToModulo, sliceArrayIntoChunks } from './__helpers.ts';
+// @ts-ignore
 import { BASICErrors } from './errors.ts';
 
 
@@ -13,8 +15,8 @@ export const __ERROR_LOG__: ErrorLog = {
 };
 
 
-type __VariableTypes = 'var' | __ListAndTableTypes;
-type __ListAndTableTypes = 'list' | 'table';
+type __VariableTypes = 'var' | __ListOrTable;
+type __ListOrTable = 'list' | 'table';
 
 type ProgramDim = __Dimension;
 type ProgramFunction = __FuncDef;
@@ -44,7 +46,7 @@ export class Interpreter
     private PROGRAM_DATA: number[] = [];
     private PROGRAM_DIMS: ProgramDim[] = [];
 
-    public getProgramDim(type: __ListAndTableTypes, name: string): ProgramDim
+    public getProgramDim(type: __ListOrTable, name: string): ProgramDim
     {
         const __LIST_DIM_DEFAULT: __ListDim = { type : 'list', name : name, dim : 10, };
         const __TABLE_DIM_DEFAULT: __TableDim = { type : 'table', name : name, dim1 : 10, dim2 : 10 };
@@ -116,6 +118,20 @@ export class Interpreter
         }
     }
 
+
+    private __createListOrTableTemplate(type: __ListOrTable, name: string): any[]
+    {
+        if (type === 'list')
+        {
+            const __dim = this.getProgramDim('list', name) as __ListDim;
+            return new Array(__dim.dim + 1);
+        }
+        else
+        {
+            const __dim = this.getProgramDim('table', name) as __TableDim;
+            return (new Array(__dim.dim1 + 1)).fill(new Array(__dim.dim2 + 1));
+        }
+    }
 
     private parseExpression(expr: ExprNode): number
     {
@@ -241,6 +257,7 @@ export class Interpreter
         };
     }
 
+
     public execute()
     {
         const ASTRootType = this.ASTtreeNormalized.type;
@@ -342,38 +359,34 @@ export class Interpreter
             {
                 case 'LET':
                 {
-                    const lv = line.value;
-                    let __newVar: ProgramVariable;
+                    const v = line.value.variable;
+                    const expr = line.value.expression;
 
-                    if (lv.variable.type === 'VARIABLE')
+                    if (v.type === 'VARIABLE')
                     {
-                        __newVar = new UnsubscriptedVariable(lv.variable.name, this.parseExpression(lv.expression));
+                        this.addProgramVariable( new UnsubscriptedVariable(v.name, this.parseExpression(expr)) );
                     }
-                    else if (lv.variable.type === 'LISTVAR')
+                    else if (v.type === 'LISTVAR')
                     {
-                        const subscript = this.parseExpression(lv.variable.subscript);
-                        const value = this.parseExpression(lv.expression);
+                        const subscript = this.parseExpression(v.subscript);
+                        const value = this.parseExpression(expr);
 
-                        const __dim = this.getProgramDim('list', lv.variable.name) as __ListDim;
-                        let __list: number[] = new Array(__dim.dim + 1);
+                        let __list: number[] = this.__createListOrTableTemplate('list', v.name);
                         __list[subscript] = value;
 
-                        __newVar = new ListVariable(lv.variable.name, __list);
+                        this.addProgramVariable( new ListVariable(v.name, __list) );
                     }
                     else
                     {
-                        const sub1 = this.parseExpression(lv.variable.subscripts.sub1);
-                        const sub2 = this.parseExpression(lv.variable.subscripts.sub2);
-                        const value = this.parseExpression(lv.expression);
+                        const sub1 = this.parseExpression(v.subscripts.sub1);
+                        const sub2 = this.parseExpression(v.subscripts.sub2);
+                        const value = this.parseExpression(expr);
 
-                        const __dim = this.getProgramDim('table', lv.variable.name) as __TableDim;
-                        let __table: number[][] = (new Array(__dim.dim1 + 1)).fill(new Array(__dim.dim2 + 1));
+                        let __table: number[][] = this.__createListOrTableTemplate('table', v.name);
                         __table[sub1][sub2] = value;
 
-                        __newVar = new TableVariable(lv.variable.name, __table);
+                        this.addProgramVariable( new TableVariable(v.name, __table) );
                     }
-
-                    this.addProgramVariable(__newVar);
 
                     continue;
                 }
@@ -381,19 +394,15 @@ export class Interpreter
                 {
                     for (const v of line.value)
                     {
-                        let __newVar: ProgramVariable;
-
                         if (v.type === 'VARIABLE')
                         {
                             const value = this.PROGRAM_DATA.shift();
                             if (value === undefined)
                             {
-                                __ERROR_LOG__.basic = BASICErrors.ILL_FORMULA;
-                                __ERROR_LOG__.extended = `Error at Interpreter.(public)execute() : Failed READ statement : No data availible.`;
-                                throw new Error();
+                                break SECOND_LOOP;
                             }
 
-                            __newVar = new UnsubscriptedVariable(v.name, value);
+                            this.addProgramVariable( new UnsubscriptedVariable(v.name, value) );
                         }
                         else if (v.type === 'LISTVAR')
                         {
@@ -401,16 +410,13 @@ export class Interpreter
                             const value = this.PROGRAM_DATA.shift();
                             if (value === undefined)
                             {
-                                __ERROR_LOG__.basic = BASICErrors.ILL_FORMULA;
-                                __ERROR_LOG__.extended = `Error at Interpreter.(public)execute() : Failed READ statement : No data availible.`;
-                                throw new Error();
+                                break SECOND_LOOP;
                             }
 
-                            const __dim = this.getProgramDim('list', v.name) as __ListDim;
-                            let __list: number[] = new Array(__dim.dim + 1);
+                            let __list: number[] = this.__createListOrTableTemplate('list', v.name);
                             __list[subscript] = value;
 
-                            __newVar = new ListVariable(v.name, __list);
+                            this.addProgramVariable( new ListVariable(v.name, __list) );
                         }
                         else
                         {
@@ -419,19 +425,53 @@ export class Interpreter
                             const value = this.PROGRAM_DATA.shift();
                             if (value === undefined)
                             {
-                                __ERROR_LOG__.basic = BASICErrors.ILL_FORMULA;
-                                __ERROR_LOG__.extended = `Error at Interpreter.(public)execute() : Failed READ statement : No data availible.`;
-                                throw new Error();
+                                break SECOND_LOOP;
                             }
 
-                            const __dim = this.getProgramDim('table', v.name) as __TableDim;
-                            let __table: number[][] = (new Array(__dim.dim1 + 1)).fill(new Array(__dim.dim2 + 1));
+                            let __table: number[][] = this.__createListOrTableTemplate('table', v.name);
                             __table[sub1][sub2] = value;
 
-                            __newVar = new TableVariable(v.name, __table);
+                            this.addProgramVariable( new TableVariable(v.name, __table) );
+                        }
+                    }
+
+                    continue;
+                }
+                case 'PRINT':
+                {
+                    // TO-DO : manual p.28, entire 3.1 (p.31)
+
+                    // Currently, PRINT statement is not implemented as original.
+                    // Here, is more simplified version.
+
+                    // (im going insane)
+
+                    const MAX_LINE_LENGTH = 5 * 15;
+
+                    for (const v of line.value)
+                    {
+                        let s: string;
+
+                        if (Array.isArray(v))
+                        {
+                            s = v[0].value + this.parseExpression(v[1]).toString();
+                        }
+                        else
+                        {
+                            s = (v.type === 'STRING') ? v.value : this.parseExpression(v).toString();
+
+                            /*
+                            // pad string from end
+                            s = padStringToModulo(s, 'end', 15);
+                            */
                         }
 
-                        this.addProgramVariable(__newVar);
+                        if (s.length > MAX_LINE_LENGTH)
+                        {
+                            s = s.slice(0, MAX_LINE_LENGTH);
+                        }
+
+                        console.log(s);
                     }
 
                     continue;
