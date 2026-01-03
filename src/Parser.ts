@@ -10,6 +10,19 @@ import {
 import { BASICErrors } from './errors.ts';
 
 
+
+type ParserError = Error | null;
+
+export function parse(tokenList: Token[])//: [ Array<Token>, ParserError ]
+{
+    const tokenStream = new __TokenStream(tokenList);
+}
+
+
+
+
+
+
 type ErrorLog = {
     basic: string | null;
     extended: string | null;
@@ -20,6 +33,9 @@ export const __ERROR_LOG__: ErrorLog = {
     extended : null,
 };
 
+
+
+/* Helpers *******************************************************************/
 
 class __TokenStream
 {
