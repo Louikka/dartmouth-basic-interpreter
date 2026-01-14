@@ -10,32 +10,120 @@ import {
 import { BASICErrors } from './errors.ts';
 
 
+interface ParserParseOptions {
+    /** Rethrows parser error, if any occures. */
+    rethrow: boolean;
+}
 
-type ParserError = Error | null;
+const DEFAULT_PARSER_PARSE_OPTIONS: ParserParseOptions = {
+    rethrow : false,
+}
 
-export function parse(tokenList: Token[])//: [ Array<Token>, ParserError ]
+type AST = {};
+
+export function parse(tokenList: Token[], options?: ParserParseOptions): [ AST, ErrorMessage ]
 {
+    if (options === undefined)
+    {
+        options = structuredClone(DEFAULT_PARSER_PARSE_OPTIONS);
+    }
+    else
+    {
+        for (const [key, value] of Object.entries(options))
+        {
+            if (value === undefined)
+            {
+                options[key as keyof ParserParseOptions] = DEFAULT_PARSER_PARSE_OPTIONS[key as keyof ParserParseOptions];
+            }
+        }
+    }
+
+
     const tokenStream = new __TokenStream(tokenList);
+
+    try
+    {
+        //
+    }
+    catch (err)
+    {
+        if (err instanceof Error)
+        {
+            if (options.rethrow) throw err;
+            return [{}, err.message];
+        }
+        else
+        {
+            throw err;
+        }
+    }
+
+    return [{}, null];
 }
-
-
-
-
-
-
-type ErrorLog = {
-    basic: string | null;
-    extended: string | null;
-}
-
-export const __ERROR_LOG__: ErrorLog = {
-    basic : null,
-    extended : null,
-};
 
 
 
 /* Helpers *******************************************************************/
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 class __TokenStream
 {

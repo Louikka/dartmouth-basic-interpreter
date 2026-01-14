@@ -21,7 +21,7 @@ const test = `
 90  END
 `;
 
-let [l, err] = Lexer.analyse(test);
+let [l, err] = Lexer.Analyse(test, { rethrow : true, });
 
 if (err !== null)
 {

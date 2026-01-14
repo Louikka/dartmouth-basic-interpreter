@@ -4,29 +4,23 @@ import {
     BASICFunctions,
     BASICOperators,
     BASICRelationOperators,
-    throwError,
 // @ts-ignore
 } from './__helpers.ts';
 // @ts-ignore
 import { BASICErrors } from './errors.ts';
 
 
-
-/*
 interface LexerAnalyseOptions {
-    errorLog?: ErrorMessageLevel;
+    /** Rethrows lexer error, if any occures. */
+    rethrow: boolean;
 }
 
 const DEFAULT_LEXER_ANALYSE_OPTIONS: LexerAnalyseOptions = {
-    errorLog : 'basic',
-};
-*/
+    rethrow : false,
+}
 
-type LexerError = Error | null;
-
-export function analyse(s: string/*, options?: LexerAnalyseOptions*/): [ Array<Token>, LexerError ]
+export function Analyse(s: string, options?: LexerAnalyseOptions): [ Array<Token>, ErrorMessage ]
 {
-    /*
     if (options === undefined)
     {
         options = structuredClone(DEFAULT_LEXER_ANALYSE_OPTIONS);
@@ -41,12 +35,10 @@ export function analyse(s: string/*, options?: LexerAnalyseOptions*/): [ Array<T
             }
         }
     }
-    */
 
 
     const charStream = new __CharStream( s.trim().toUpperCase() );
     let tokenList: Array<Token> = [];
-
 
     try
     {
@@ -61,11 +53,12 @@ export function analyse(s: string/*, options?: LexerAnalyseOptions*/): [ Array<T
     {
         if (err instanceof Error)
         {
-            return [tokenList, err];
+            if (options.rethrow) throw err;
+            return [tokenList, err.message];
         }
         else
         {
-            throwError(`Unknown error occured : `, err);
+            throw err;
         }
     }
 
@@ -276,13 +269,7 @@ function readString(stream: __CharStream): StrToken
 
         if (char === '\n')
         {
-            throw new Error(`Missing quote.`, {
-                cause : {
-                    BASICErrorMessage : BASICErrors.ILL_FORMULA,
-                    extendedErrorMessage : `Missing quote.`,
-                    technicalErrorMessage : `Error at [ Lexer module -> (local) readString() ].`,
-                },
-            });
+            throw new Error(BASICErrors.ILL_FORMULA);
         }
 
         if (/*char === '\'' || */char === '"')
@@ -344,13 +331,7 @@ function readKeyword(stream: __CharStream): KeywToken | FuncToken
     }
     else
     {
-        throw new Error(`Cannot read keyword.`, {
-            cause : {
-                BASICErrorMessage : BASICErrors.ILL_FORMULA,
-                extendedErrorMessage : `Cannot read keyword.`,
-                technicalErrorMessage : `Error at [ Lexer module -> (local) readKeyword() ].`,
-            },
-        });
+        throw new Error(BASICErrors.ILL_FORMULA);
     }
 }
 
@@ -444,11 +425,5 @@ function readNextToken(stream: __CharStream): Token
         };
     }
 
-    throw new Error(`Cannot handle character "${char}".`, {
-        cause : {
-            BASICErrorMessage : BASICErrors.ILL_FORMULA,
-            extendedErrorMessage : `Cannot handle character "${char}".`,
-            technicalErrorMessage : `Error at [ Lexer module -> (local) readNextToken() ].`,
-        },
-    });
+    throw new Error(BASICErrors.ILL_FORMULA);
 }

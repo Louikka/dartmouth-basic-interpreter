@@ -1,4 +1,14 @@
-type Token = PuncToken | NumToken | StrToken | KeywToken | VarToken | FuncToken | OperToken | RelToken | SpecToken;
+type Token =
+    | PuncToken
+    | NumToken
+    | StrToken
+    | KeywToken
+    | VarToken
+    | FuncToken
+    | OperToken
+    | RelToken
+    | SpecToken
+;
 
 type PuncToken = {
     type: 'punc';
