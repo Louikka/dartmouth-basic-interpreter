@@ -3,7 +3,7 @@ type Token =
     | NumToken
     | StrToken
     | KeywToken
-    | VarToken
+    | VarToken | UnsubVarToken | ListVarToken | TableVarToken
     | FuncToken
     | OperToken
     | RelToken
@@ -45,4 +45,20 @@ type RelToken = {
 type SpecToken = {
     type: 'spec';
     value: 'LINEBREAK' | 'ENDOFSTREAM';
+};
+
+type UnsubVarToken = {
+    type: 'unsub';
+    value: string;
+};
+type ListVarToken = {
+    type: 'list';
+    value: string;
+    subscript: Token[];
+};
+type TableVarToken = {
+    type: 'table';
+    value: string;
+    subscript1: Token[];
+    subscript2: Token[];
 };

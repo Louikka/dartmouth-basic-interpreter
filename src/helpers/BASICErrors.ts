@@ -3,7 +3,7 @@ export const BASICErrors = {
     DIM_TOO_LARGE    : 'DIMENSION TOO LARGE',
     /** More than nine digits or incorrect form in a constant number. */
     ILL_CONST        : 'ILLEGAL CONSTANT',
-    /** Perhaps the most common error message, may indicate missing parentheses, illegal variable names, missing multiply signs, illegal numbers, or many other errors. Check the statement thoroughly */
+    /** Perhaps the most common error message, may indicate missing parentheses, illegal variable names, missing multiply signs, illegal numbers, or many other errors. Check the statement thoroughly. */
     ILL_FORMULA      : 'ILLEGAL FORMULA',
     /** Something is wrong with the relational expression in an `IF-THEN` statement. Check to see if you used one of the six permissable relational symbols. */
     ILL_REL          : 'ILLEGAL RELATION',

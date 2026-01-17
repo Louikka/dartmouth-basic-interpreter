@@ -1,15 +1,11 @@
 type ASTRoot = {
-    type: 'PROGRAM';
-    value: Array<ASTStatement>;
+    type: 'ROOT';
+    value: Array<BASICStatement>;
 };
 
 
 
-
-
 //type ASTStatement = LETStatement | READStatement | DATAStatement | PRINTStatement | GOTOStatement | IFTHENStatement | FORStatement | NEXTStatement | ENDStatement | STOPStatement | DEFStatement | GOSUBStatement | RETURNStatement | DIMStatement | REMStatement;
-
-type ASTStatement = LETStatement | READStatement | DATAStatement | PRINTStatement | GOTOStatement | IFTHENStatement | FORStatement | NEXTStatement | ENDStatement | STOPStatement | DEFStatement | GOSUBStatement | RETURNStatement | DIMStatement | REMStatement;
 
 type BASICStatement =
     | LETStatement
@@ -33,40 +29,40 @@ type LETStatement = {
     line_number: number;
     statement: 'LET';
     value: {
-        variable: VarNode;
-        expression: ExprNode;
+        variable: VariableNode;
+        expression: ExpressionNode;
     };
 };
 type READStatement = {
     line_number: number;
     statement: 'READ';
-    value: Array<VarNode>;
+    value: Array<VariableNode>;
 };
 type DATAStatement = {
     line_number: number;
     statement: 'DATA';
-    value: Array<NumNode>;
+    value: Array<NumberNode>;
 };
 type PRINTStatement = {
     line_number: number;
     statement: 'PRINT';
-    value: Array<StrNode | [ StrNode, ExprNode ] | ExprNode>;
+    value: Array<StringNode | [ StringNode, ExpressionNode ] | ExpressionNode>;
 };
 type GOTOStatement = {
     line_number: number;
     statement: 'GOTO';
     /** Line number. */
-    value: NumNode;
+    value: NumberNode;
 };
 type IFTHENStatement = {
     line_number: number;
     statement: 'IF';
     value: {
-        expression_left: ExprNode;
+        expression_left: ExpressionNode;
         relation: string;
-        expression_right: ExprNode;
+        expression_right: ExpressionNode;
         /** Line number. */
-        then: NumNode;
+        then: NumberNode;
     };
 };
 type FORStatement = {
@@ -74,9 +70,9 @@ type FORStatement = {
     statement: 'FOR';
     value: {
         variable: UnsubVarNode;
-        expression: ExprNode;
-        to: ExprNode;
-        step: ExprNode;
+        expression: ExpressionNode;
+        to: ExpressionNode;
+        step: ExpressionNode;
     };
 };
 type NEXTStatement = {
@@ -101,7 +97,7 @@ type GOSUBStatement = {
     line_number: number;
     statement: 'GOSUB';
     /** Line number. */
-    value: NumNode;
+    value: NumberNode;
 };
 type RETURNStatement = {
     line_number: number;
@@ -117,55 +113,3 @@ type REMStatement = {
     statement: 'REM';
     value?: string;
 };
-
-
-
-
-
-type Node = StrNode | ExprNode | AsgnNode;
-
-type NumNode = {
-    type: 'NUMBER';
-    value: number;
-};
-type StrNode = {
-    type: 'STRING';
-    value: string;
-};
-type VarNode = UnsubVarNode | ListNode | TableNode;
-type UnsubVarNode = {
-    type: 'VARIABLE';
-    name: string;
-};
-type ListNode = {
-    type: 'LISTVAR';
-    name: string;
-    subscript: ExprNode;
-};
-type TableNode = {
-    type: 'TABLEVAR';
-    name: string;
-    subscripts: {
-        sub1: ExprNode;
-        sub2: ExprNode;
-    };
-};
-type FuncNode = DefFuncNode | UserFuncNode;
-type DefFuncNode = {
-    type: 'FUNCCALL';
-    name: string;
-    argument: ExprNode; // all BASIC function can have only one parameter
-};
-type UserFuncNode = {
-    type: 'UFUNCCALL';
-    /** `FN` + single letter. */
-    name: string;
-    argument: ExprNode;
-};
-type BinNode = {
-    type: 'BINARY';
-    operator: string;
-    left: ExprNode;
-    right: ExprNode;
-};
-type ExprNode = NumNode | VarNode | BinNode | FuncNode;

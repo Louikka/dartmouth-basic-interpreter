@@ -5,9 +5,9 @@ import {
     BASICOperators,
     BASICRelationOperators,
 // @ts-ignore
-} from './__helpers.ts';
+} from './helpers/BASICLexemes.ts';
 // @ts-ignore
-import { BASICErrors } from './errors.ts';
+import { BASICErrors } from './helpers/BASICErrors.ts';
 
 
 interface LexerAnalyseOptions {
@@ -71,6 +71,12 @@ export function Analyse(s: string, options?: LexerAnalyseOptions): [ Array<Token
 
 class __CharStream
 {
+    constructor(s: string)
+    {
+        this.input = s;
+    }
+
+
     private input: string;
 
     public get streamLength(): number
@@ -97,12 +103,6 @@ class __CharStream
     public get __readLine(): string
     {
         return this.readLine;
-    }
-
-
-    constructor(s: string)
-    {
-        this.input = s;
     }
 
 

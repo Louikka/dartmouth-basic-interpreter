@@ -3,11 +3,10 @@ import {
     BASICFunctions,
     BASICOperators,
     BASICStatements,
-    binTokens,
 // @ts-ignore
-} from './__helpers.ts';
+} from './helpers/BASICLexemes.ts';
 // @ts-ignore
-import { BASICErrors } from './errors.ts';
+import { BASICErrors } from './helpers/BASICErrors.ts';
 
 
 interface ParserParseOptions {
@@ -19,9 +18,7 @@ const DEFAULT_PARSER_PARSE_OPTIONS: ParserParseOptions = {
     rethrow : false,
 }
 
-type AST = {};
-
-export function parse(tokenList: Token[], options?: ParserParseOptions): [ AST, ErrorMessage ]
+export function Parse(tokenList: Token[], options?: ParserParseOptions): [ ASTRoot, ErrorMessage ]
 {
     if (options === undefined)
     {
@@ -40,17 +37,25 @@ export function parse(tokenList: Token[], options?: ParserParseOptions): [ AST, 
 
 
     const tokenStream = new __TokenStream(tokenList);
+    let astRoot: ASTRoot = {
+        type : 'ROOT',
+        value : [],
+    };
 
     try
     {
-        //
+        while (!tokenStream.isEndOfStream())
+        {
+            astRoot.value.push( parseStatementLine(tokenStream) );
+            tokenStream.next();
+        }
     }
     catch (err)
     {
         if (err instanceof Error)
         {
             if (options.rethrow) throw err;
-            return [{}, err.message];
+            return [astRoot, err.message];
         }
         else
         {
@@ -58,75 +63,21 @@ export function parse(tokenList: Token[], options?: ParserParseOptions): [ AST, 
         }
     }
 
-    return [{}, null];
+    return [astRoot, null];
 }
 
 
 
 /* Helpers *******************************************************************/
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 class __TokenStream
 {
+    constructor(arr: Array<Token>)
+    {
+        this.input = arr;
+    }
+
+
     private input: Array<Token>;
 
     public get streamLength(): number
@@ -134,7 +85,7 @@ class __TokenStream
         return this.input.length;
     }
 
-    private pos: number;
+    private pos = 0;
 
     public get currentPosition(): number
     {
@@ -153,13 +104,6 @@ class __TokenStream
     public get __readLine(): Array<Token>
     {
         return this.readLine;
-    }
-
-
-    constructor(arr: Array<Token>)
-    {
-        this.input = arr;
-        this.pos = 0;
     }
 
 
@@ -182,14 +126,14 @@ class __TokenStream
 
     public next(): Token
     {
-        const __token = this.peek();
-        if (__token.type === 'spec' && __token.value === 'LINEBREAK')
+        const token = this.peek();
+        if (token.type === 'spec' && token.value === 'LINEBREAK')
         {
             this.readLine = [];
         }
         else
         {
-            this.readLine.push(__token);
+            this.readLine.push(token);
         }
 
         this.pos++;
@@ -209,763 +153,33 @@ class __TokenStream
 }
 
 
-export class Parser
-{
-    constructor(tokenList: Token[])
-    {
-        this.originalInput = tokenList;
-        this.tokenStream = new __TokenStream(this.originalInput);
-    }
-
-
-
-    private originalInput: Token[];
-    private tokenStream: __TokenStream;
-
-
-    public __resetStream()
-    {
-        this.tokenStream = new __TokenStream(this.originalInput);
-    }
-
-
-    private readToken(errorMessage?: string): Token
-    {
-        const token = this.tokenStream.peek();
-        if (token === undefined || token === null)
-        {
-            __ERROR_LOG__.basic = BASICErrors.ILL_FORMULA;
-            __ERROR_LOG__.extended = `Error at Parser.(private)readToken() : Cannot read token.`;
-            throw new Error();
-        }
-
-        this.tokenStream.next();
-
-        return token;
-    }
-
-    /**
-     * @param predicate test function. Reads while returns `true`.
-     */
-    private readWhile(predicate: (token: Token, readList: Token[]) => boolean): Token[]
-    {
-        let tl: Token[] = [];
-
-        while (!this.tokenStream.isEndOfStream() && predicate(this.tokenStream.peek(), tl))
-        {
-            tl.push( this.readToken() );
-        }
-
-        return tl;
-    }
-
-
-    private readParentheses(): Token[]
-    {
-        const __currToken = this.tokenStream.peek();
-        if (__currToken === undefined || __currToken === null || __currToken.value !== '(')
-        {
-            __ERROR_LOG__.basic = BASICErrors.ILL_FORMULA;
-            __ERROR_LOG__.extended = `Error at Parser.(private)readParentheses() : Expected a parenthesis.`;
-            throw new Error();
-        }
-
-        let depth = 1;
-        let __return: Token[] = [];
-
-        while (!__isLineBreakOrEOF(this.tokenStream.peek()))
-        {
-            const token = this.tokenStream.next();
-            if (token === undefined || token === null)
-            {
-                __ERROR_LOG__.basic = BASICErrors.ILL_FORMULA;
-                __ERROR_LOG__.extended = `Error at Parser.(private)readParentheses() : Expected a closing parenthesis.`;
-                throw new Error();
-            }
-
-            if (token.value === '(')
-            {
-                depth++;
-                if (depth === 1) continue;
-            }
-            else if (token.value === ')' && depth > 0)
-            {
-                depth--;
-                if (depth === 0) break;
-            }
-
-            if (depth > 0)
-            {
-                __return.push(token);
-                continue;
-            }
-        }
-
-        this.tokenStream.next();
-
-        return __return;
-    }
-
-    private readExpressionUntilComma(): Token[]
-    {
-        return this.readWhile((t, tl) => !__isLineBreakOrEOF(t) && t.value !== ',');
-    }
-
-
-    private parseNumber(): NumNode
-    {
-        const token = this.readToken();
-        if (token.type !== 'num')
-        {
-            __ERROR_LOG__.basic = BASICErrors.ILL_FORMULA;
-            __ERROR_LOG__.extended = `Error at Parser.(private)parseNumber() : Expected a number, but got "${token.type}".`;
-            throw new Error();
-        }
-
-        return {
-            type : 'NUMBER',
-            value : token.value,
-        };
-    }
-
-    private parseString(): StrNode
-    {
-        const token = this.readToken();
-        if (token.type !== 'str')
-        {
-            __ERROR_LOG__.basic = BASICErrors.ILL_FORMULA;
-            __ERROR_LOG__.extended = `Error at Parser.(private)parseString() : Expected a string, but got "${token.type}".`;
-            throw new Error();
-        }
-
-        return {
-            type : 'STRING',
-            value : token.value,
-        };
-    }
-
-    private parseVariable(): VarNode
-    {
-        const token = this.readToken();
-        if (token.type !== 'var')
-        {
-            __ERROR_LOG__.basic = BASICErrors.ILL_FORMULA;
-            __ERROR_LOG__.extended = `Error at Parser.(private)parseVariable() : Expected a variable name, but got "${token.type}".`;
-            throw new Error();
-        }
-
-        const nextToken = this.tokenStream.peek();
-
-        if (nextToken !== null && nextToken.value === '(')
-        {
-            let __readSubscript = this.readParentheses();
-            let __subscript = parseCommaSeparatedValues(__readSubscript);
-
-            if (__subscript.length > 1)
-            {
-                return {
-                    type : 'TABLEVAR',
-                    name : token.value,
-                    subscripts : {
-                        sub1 : this.parseExpression(__subscript[0]),
-                        sub2 : this.parseExpression(__subscript[1]),
-                    },
-                };
-            }
-            else
-            {
-                return {
-                    type : 'LISTVAR',
-                    name : token.value,
-                    subscript : this.parseExpression(__subscript[0]),
-                };
-            }
-        }
-        else
-        {
-            return {
-                type : 'VARIABLE',
-                name : token.value,
-            };
-        }
-    }
-
-    private parseExpression(input: Token[]): ExprNode
-    {
-        let pExpr = parenthesizeExpression(input);
-        return parseParenthesizedExpression(pExpr);
-    }
-
-    private parseStatement(): ASTStatement
-    {
-        const lineNumber = this.parseNumber();
-
-        const statement = this.readToken();
-        if (statement.type !== 'keyw')
-        {
-            __ERROR_LOG__.basic = BASICErrors.ILL_FORMULA;
-            __ERROR_LOG__.extended = `Error at Parser.(private)parseStatement() : Expected a statement, but got "${statement.type}".`;
-            throw new Error();
-        }
-        if (!BASICStatements.includes(statement.value))
-        {
-            __ERROR_LOG__.basic = BASICErrors.ILL_INSTRUCTION;
-            __ERROR_LOG__.extended = `Error at Parser.(private)parseStatement() : Expected a valid BASIC statement, but got "${statement.value}".`;
-            throw new Error();
-        }
-
-
-        switch (statement.value)
-        {
-            // `break;` on the end of the case label is for safety reasons.
-            // (Also, in VSCode it makes case label fold nicely)
-            // Do not remove.
-
-            case 'LET':
-            {
-                const variable = this.parseVariable();
-
-                const __relation = this.readToken();
-                if (__relation.type !== 'rel' || __relation.value !== '=')
-                {
-                    __ERROR_LOG__.basic = BASICErrors.INCORR_FORMAT;
-                    __ERROR_LOG__.extended = `Error at Parser.(private)parseStatement() : Trying to parse LET statement : Expected an assignment operator ("="), but got "${__relation.value}".`;
-                    throw new Error();
-                }
-
-                const expression = this.readWhile((t, tl) => !__isLineBreakOrEOF(t));
-
-                return {
-                    line_number : lineNumber.value,
-                    statement : statement.value,
-                    value : {
-                        variable : variable,
-                        expression : this.parseExpression(expression),
-                    },
-                };
-            }break;
-            case 'READ':
-            {
-                let vars = [];
-
-                while (!__isLineBreakOrEOF(this.tokenStream.peek()))
-                {
-                    vars.push( this.parseVariable() );
-
-                    let maybeComma = this.tokenStream.peek();
-
-                    if (maybeComma !== null && maybeComma.value === ',')
-                    {
-                        this.tokenStream.next();
-                        continue;
-                    }
-                    else
-                    {
-                        if (__isLineBreakOrEOF(this.tokenStream.peek()))
-                        {
-                            break;
-                        }
-                        else
-                        {
-                            __ERROR_LOG__.basic = BASICErrors.INCORR_FORMAT;
-                            __ERROR_LOG__.extended = `Error at Parser.(private)parseStatement() : Trying to parse READ statement : Expected a comma or a line break.`;
-                            throw new Error();
-                        }
-                    }
-                }
-
-                return {
-                    line_number : lineNumber.value,
-                    statement : statement.value,
-                    value : vars,
-                };
-            }break;
-            case 'DATA':
-            {
-                let data = [];
-
-                while (!__isLineBreakOrEOF(this.tokenStream.peek()))
-                {
-                    data.push( this.parseNumber() );
-
-                    let maybeComma = this.tokenStream.peek();
-
-                    if (maybeComma !== null && maybeComma.value === ',')
-                    {
-                        this.tokenStream.next();
-                        continue;
-                    }
-                    else
-                    {
-                        if (__isLineBreakOrEOF(this.tokenStream.peek()))
-                        {
-                            break;
-                        }
-                        else
-                        {
-                            __ERROR_LOG__.basic = BASICErrors.INCORR_FORMAT;
-                            __ERROR_LOG__.extended = `Error at Parser.(private)parseStatement() : Trying to parse DATA statement : Expected a comma or a line break.`;
-                            throw new Error();
-                        }
-                    }
-                }
-
-                return {
-                    line_number : lineNumber.value,
-                    statement : statement.value,
-                    value : data,
-                };
-            }break;
-            case 'PRINT':
-            {
-                let data: Array<StrNode | [ StrNode, ExprNode ] | ExprNode> = [];
-                let isLastIsComma = false;
-
-                while (!__isLineBreakOrEOF(this.tokenStream.peek()))
-                {
-                    const token = this.tokenStream.peek();
-                    if (token === undefined || token === null)
-                    {
-                        __ERROR_LOG__.basic = BASICErrors.INCORR_FORMAT;
-                        __ERROR_LOG__.extended = `Error at Parser.(private)parseStatement() : Trying to parse PRINT statement : Cannot parse label or expression.`;
-                        throw new Error();
-                    }
-
-                    if (token.type === 'str')
-                    {
-                        const string = this.parseString();
-
-                        const nextToken = this.tokenStream.peek();
-                        if (!__isLineBreakOrEOF(nextToken) && nextToken !== null && nextToken.value !== ',')
-                        {
-                            const expression = this.readExpressionUntilComma();
-
-                            data.push([ string, this.parseExpression(expression) ]);
-                        }
-                        else
-                        {
-                            data.push(string);
-                        }
-
-                        isLastIsComma = false;
-                        continue;
-                    }
-                    else if (token.type === 'punc' && token.value === ',')
-                    {
-                        this.tokenStream.next();
-                        isLastIsComma = true;
-                        continue;
-                    }
-                    else
-                    {
-                        const expression = this.readExpressionUntilComma();
-
-                        data.push(this.parseExpression(expression));
-                        isLastIsComma = false;
-                        continue;
-                    }
-                }
-
-                //if (!isLastIsComma) data.push({ type : 'STRING', value : '\n', });
-
-                return {
-                    line_number : lineNumber.value,
-                    statement : statement.value,
-                    value : data,
-                };
-            }break;
-            case 'GOTO':
-            {
-                const GOTOLineNumber = this.parseNumber();
-                if (GOTOLineNumber.value < 0 || !Number.isInteger(GOTOLineNumber.value))
-                {
-                    __ERROR_LOG__.basic = BASICErrors.ILL_LINE_NUM;
-                    __ERROR_LOG__.extended = `Error at Parser.(private)parseStatement() : Trying to parse GOTO statement : Expected a line number (non-negative integer).`;
-                    throw new Error();
-                }
-
-                return {
-                    line_number : lineNumber.value,
-                    statement : statement.value,
-                    value : GOTOLineNumber,
-                };
-            }break;
-            case 'IF':
-            {
-                const exprLeft = this.readWhile((t, tl) => t.type !== 'rel');
-
-                const relation = this.readToken();
-                if (relation.type !== 'rel')
-                {
-                    __ERROR_LOG__.basic = BASICErrors.INCORR_FORMAT;
-                    __ERROR_LOG__.extended = `Error at Parser.(private)parseStatement() : Trying to parse IF statement : Expected a relation operator, but got "${relation.type}".`;
-                    throw new Error();
-                }
-                if (!BASICConditionOperators.includes(relation.value))
-                {
-                    __ERROR_LOG__.basic = BASICErrors.ILL_REL;
-                    __ERROR_LOG__.extended = `Error at Parser.(private)parseStatement() : Trying to parse IF statement : Expected one of the six permissable relation operators ("<", ">", "=", "<=", ">=" or "<>"), but got "${relation.value}".`;
-                    throw new Error();
-                }
-
-                const exprRight = this.readWhile((t, tl) => t.type !== 'keyw');
-
-                const __THENKeyw = this.readToken();
-                if (__THENKeyw.value !== 'THEN')
-                {
-                    __ERROR_LOG__.basic = BASICErrors.INCORR_FORMAT;
-                    __ERROR_LOG__.extended = `Error at Parser.(private)parseStatement() : Trying to parse IF statement : Expected a "THEN" keyword, but got "${__THENKeyw.value}".`;
-                    throw new Error();
-                }
-
-                const THENLineNumber = this.parseNumber();
-                if (THENLineNumber.value < 0 || !Number.isInteger(THENLineNumber.value))
-                {
-                    __ERROR_LOG__.basic = BASICErrors.ILL_LINE_NUM;
-                    __ERROR_LOG__.extended = `Error at Parser.(private)parseStatement() : Trying to parse IF statement : Expected a line number (non-negative integer).`;
-                    throw new Error();
-                }
-
-                return {
-                    line_number : lineNumber.value,
-                    statement : statement.value,
-                    value : {
-                        expression_left : this.parseExpression(exprLeft),
-                        relation : relation.value,
-                        expression_right : this.parseExpression(exprRight),
-                        then : THENLineNumber,
-                    },
-                };
-            }break;
-            case 'FOR':
-            {
-                // unsubscripted variable
-                const unsubVar = this.parseVariable();
-                if (unsubVar.type !== 'VARIABLE')
-                {
-                    __ERROR_LOG__.basic = BASICErrors.INCORR_FORMAT;
-                    __ERROR_LOG__.extended = `Error at Parser.(private)parseStatement() : Trying to parse FOR statement : Expected an unsubscripted variable.`;
-                    throw new Error();
-                }
-
-                // =
-                const __relation = this.readToken();
-                if (__relation.type !== 'rel' || __relation.value !== '=')
-                {
-                    __ERROR_LOG__.basic = BASICErrors.INCORR_FORMAT;
-                    __ERROR_LOG__.extended = `Error at Parser.(private)parseStatement() : Trying to parse FOR statement : Expected an assignment operator ("="), but got "${__relation.value}".`;
-                    throw new Error();
-                }
-
-                // expression
-                const assignExpression = this.readWhile((t, tl) => t.type !== 'keyw');
-
-                // TO
-                const __TOKeyw = this.readToken();
-                if (__TOKeyw.value !== 'TO')
-                {
-                    __ERROR_LOG__.basic = BASICErrors.INCORR_FORMAT;
-                    __ERROR_LOG__.extended = `Error at Parser.(private)parseStatement() : Trying to parse FOR statement : Expected a "TO" keyword, but got "${__TOKeyw.value}".`;
-                    throw new Error();
-                }
-
-                // expression
-                const TOExpression = this.readWhile((t, tl) => t.type !== 'keyw');
-
-                // (optional)
-
-                // STEP
-                const __STEPKeyw = this.tokenStream.peek();
-
-                // expression
-                let STEPExpr: Array<Token>;
-
-                if (__isLineBreakOrEOF(__STEPKeyw))
-                {
-                    // if STEP is omitted (defaults to 1 (maybe))
-                    // `Omitting the STEP part is the same as assuming the step-size to be unity.`
-                    STEPExpr = [ { type : 'num', value : 1, } ];
-                }
-                else
-                {
-                    if (__STEPKeyw.value !== 'STEP')
-                    {
-                        __ERROR_LOG__.basic = BASICErrors.INCORR_FORMAT;
-                        __ERROR_LOG__.extended = `Error at Parser.(private)parseStatement() : Trying to parse FOR statement : Expected a "STEP" keyword, but got "${__STEPKeyw.value}".`;
-                        throw new Error();
-                    }
-
-                    this.tokenStream.next();
-                    STEPExpr = this.readWhile((t, tl) => !__isLineBreakOrEOF(t));
-                }
-
-
-                return {
-                    line_number : lineNumber.value,
-                    statement : statement.value,
-                    value : {
-                        variable : unsubVar,
-                        expression : this.parseExpression(assignExpression),
-                        to : this.parseExpression(TOExpression),
-                        step : this.parseExpression(STEPExpr),
-                    },
-                };
-            }break;
-            case 'NEXT':
-            {
-                const unsubVar = this.parseVariable();
-                if (unsubVar.type !== 'VARIABLE')
-                {
-                    __ERROR_LOG__.basic = BASICErrors.INCORR_FORMAT;
-                    __ERROR_LOG__.extended = `Error at Parser.(private)parseStatement() : Trying to parse NEXT statement : Expected an unsubscripted variable.`;
-                    throw new Error();
-                }
-
-                return {
-                    line_number : lineNumber.value,
-                    statement : statement.value,
-                    value : unsubVar,
-                };
-            }break;
-            case 'END':
-            {
-                return {
-                    line_number : lineNumber.value,
-                    statement : statement.value,
-                };
-            }break;
-            case 'STOP':
-            {
-                return {
-                    line_number : lineNumber.value,
-                    statement : statement.value,
-                };
-            }break;
-            case 'DEF':
-            {
-                // FN
-                const __FNKeyw = this.readToken();
-                if (__FNKeyw.value !== 'FN')
-                {
-                    __ERROR_LOG__.basic = BASICErrors.INCORR_FORMAT;
-                    __ERROR_LOG__.extended = `Error at Parser.(private)parseStatement() : Trying to parse DEF statement : Expected a "FN" keyword, but got "${__FNKeyw.value}".`;
-                    throw new Error();
-                }
-
-                // letter
-                const letter = this.readToken();
-                if (letter.type !== 'var')
-                {
-                    __ERROR_LOG__.basic = BASICErrors.INCORR_FORMAT;
-                    __ERROR_LOG__.extended = `Error at Parser.(private)parseStatement() : Trying to parse DEF statement : Expected a function name.`;
-                    throw new Error();
-                }
-
-                // unsubscripted variable
-                const unsubVar = this.readParentheses();
-                if (unsubVar.length > 1 || unsubVar[0].type !== 'var')
-                {
-                    __ERROR_LOG__.basic = BASICErrors.INCORR_FORMAT;
-                    __ERROR_LOG__.extended = `Error at Parser.(private)parseStatement() : Trying to parse DEF statement : Expected an unsubscripted variable.`;
-                    throw new Error();
-                }
-
-                // =
-                const __relation = this.readToken();
-                if (__relation.type !== 'rel' || __relation.value !== '=')
-                {
-                    __ERROR_LOG__.basic = BASICErrors.INCORR_FORMAT;
-                    __ERROR_LOG__.extended = `Error at Parser.(private)parseStatement() : Trying to parse DEF statement : Expected an assignment operator ("="), but got "${__relation.value}".`;
-                    throw new Error();
-                }
-
-                // expression
-                const expression = this.readWhile((t, tl) => !__isLineBreakOrEOF(t));
-
-                return {
-                    line_number : lineNumber.value,
-                    statement : statement.value,
-                    value : {
-                        name : __FNKeyw.value + letter.value,
-                        variable : {
-                            type : 'VARIABLE',
-                            name : unsubVar[0].value,
-                        },
-                        expression : this.parseExpression(expression),
-                    },
-                };
-            }break;
-            case 'GOSUB':
-            {
-                const GOSUBLineNumber = this.parseNumber();
-                if (GOSUBLineNumber.value < 0 || !Number.isInteger(GOSUBLineNumber.value))
-                {
-                    __ERROR_LOG__.basic = BASICErrors.ILL_LINE_NUM;
-                    __ERROR_LOG__.extended = `Error at Parser.(private)parseStatement() : Trying to parse GOSUB statement : Expected a line number (non-negative integer).`;
-                    throw new Error();
-                }
-
-                return {
-                    line_number : lineNumber.value,
-                    statement : statement.value,
-                    value : GOSUBLineNumber,
-                };
-            }break;
-            case 'RETURN':
-            {
-                return {
-                    line_number : lineNumber.value,
-                    statement : statement.value,
-                };
-            }break;
-            case 'DIM':
-            {
-                let dims: __Dimension[] = [];
-
-                while (!__isLineBreakOrEOF(this.tokenStream.peek()))
-                {
-                    const letter = this.readToken();
-                    if (letter.type !== 'var')
-                    {
-                        __ERROR_LOG__.basic = BASICErrors.INCORR_FORMAT;
-                        __ERROR_LOG__.extended = `Error at Parser.(private)parseStatement() : Trying to parse DIM statement : Cannot parse a letter.`;
-                        throw new Error();
-                    }
-
-                    const __paren = this.readParentheses();
-                    if (__paren.length > 1)
-                    {
-                        const int1 = __paren[0];
-                        if (int1.type !== 'num' || !Number.isInteger(int1.value))
-                        {
-                            __ERROR_LOG__.basic = BASICErrors.ILL_CONST;
-                            __ERROR_LOG__.extended = `Error at Parser.(private)parseStatement() : Trying to parse DIM statement : Expected an integer.`;
-                            throw new Error();
-                        }
-
-                        const __comma = __paren[1];
-                        if (__comma === undefined || __comma.value !== ',')
-                        {
-                            __ERROR_LOG__.basic = BASICErrors.INCORR_FORMAT;
-                            __ERROR_LOG__.extended = `Error at Parser.(private)parseStatement() : Trying to parse DIM statement : Expected a comma.`;
-                            throw new Error();
-                        }
-
-                        const int2 = __paren[2];
-                        if (int2 === undefined || int2.type !== 'num' || !Number.isInteger(int2.value))
-                        {
-                            __ERROR_LOG__.basic = BASICErrors.ILL_CONST;
-                            __ERROR_LOG__.extended = `Error at Parser.(private)parseStatement() : Trying to parse DIM statement : Expected an integer.`;
-                            throw new Error();
-                        }
-
-                        dims.push({
-                            type : 'table',
-                            name : letter.value,
-                            dim1 : int1.value,
-                            dim2 : int2.value,
-                        });
-                    }
-                    else if (__paren.length === 1)
-                    {
-                        const integer = __paren[0];
-                        if (integer.type !== 'num' || !Number.isInteger(integer.value))
-                        {
-                            __ERROR_LOG__.basic = BASICErrors.ILL_CONST;
-                            __ERROR_LOG__.extended = `Error at Parser.(private)parseStatement() : Trying to parse DIM statement : Expected an integer.`;
-                            throw new Error();
-                        }
-
-                        dims.push({
-                            type : 'list',
-                            name : letter.value,
-                            dim : integer.value,
-                        });
-                    }
-                    else
-                    {
-                        __ERROR_LOG__.basic = BASICErrors.INCORR_FORMAT;
-                        __ERROR_LOG__.extended = `Error at Parser.(private)parseStatement() : Trying to parse DIM statement : Cannot read parentheses.`;
-                        throw new Error();
-                    }
-
-
-                    let maybeComma = this.tokenStream.peek();
-
-                    if (maybeComma !== null && maybeComma.value === ',')
-                    {
-                        this.tokenStream.next();
-                        continue;
-                    }
-                    else
-                    {
-                        if (__isLineBreakOrEOF(this.tokenStream.peek()))
-                        {
-                            break;
-                        }
-                        else
-                        {
-                            __ERROR_LOG__.basic = BASICErrors.INCORR_FORMAT;
-                            __ERROR_LOG__.extended = `Error at Parser.(private)parseStatement() : Trying to parse DIM statement : Expected a comma or a line break.`;
-                            throw new Error();
-                        }
-                    }
-                }
-
-                return {
-                    line_number : lineNumber.value,
-                    statement : statement.value,
-                    value : dims,
-                };
-            }break;
-            case 'REM':
-            {
-                return {
-                    line_number : lineNumber.value,
-                    statement : statement.value,
-                };
-            }break;
-
-            default:
-            {
-                __ERROR_LOG__.extended = `Error at Parser.(private)parseStatement() : Cannot parse statement "${statement.value}".`;
-                throw new Error();
-            }
-        }
-    }
-
-
-    public parse(): ASTRoot
-    {
-        if (this.tokenStream.currentPosition !== 0)
-        {
-            this.__resetStream();
-        }
-
-        let ASTStatements: Array<ASTStatement> = [];
-
-        while (!this.tokenStream.isEndOfStream())
-        {
-            ASTStatements.push( this.parseStatement() );
-            this.tokenStream.next();
-        }
-
-        return {
-            type : 'PROGRAM',
-            value : ASTStatements,
-        };
-    }
-}
-
-
 
 function parenthesizeExpression(input: Token[]): Token[]
 {
     // https://en.wikipedia.org/wiki/Operator-precedence_parser#Full_parenthesization
     //
 
+    const tokenParenOpen: PuncToken = {
+        type : 'punc',
+        value : '(',
+    };
+    const tokenParenClose: PuncToken = {
+        type : 'punc',
+        value : ')',
+    };
+    const tokenPlus: OperToken = {
+        type : 'oper',
+        value : '+',
+    };
+    const tokenMinus: OperToken = {
+        type : 'oper',
+        value : '-',
+    };
+
+
     let __return: Token[] = [];
-    __return.push( ...new Array(4).fill(binTokens.parenOpen) );
+
+    __return.push( ...new Array(4).fill(tokenParenOpen) );
 
     for (let i = 0; i !== input.length; i++)
     {
@@ -975,47 +189,47 @@ function parenthesizeExpression(input: Token[]): Token[]
         {
             case '(':
             {
-                __return.push( ...new Array(4).fill(binTokens.parenOpen) );
+                __return.push( ...new Array(4).fill(tokenParenOpen) );
                 continue;
             }
             case ')':
             {
-                __return.push( ...new Array(4).fill(binTokens.parenClose) );
+                __return.push( ...new Array(4).fill(tokenParenClose) );
                 continue;
             }
             case ',':
             {
                 __return.push(
-                    ...new Array(3).fill(binTokens.parenClose),
+                    ...new Array(3).fill(tokenParenClose),
                     { type : 'punc', value : ',', },
-                    ...new Array(3).fill(binTokens.parenOpen),
+                    ...new Array(3).fill(tokenParenOpen),
                 );
                 continue;
             }
             case '^':
             {
                 __return.push(
-                    binTokens.parenClose,
-                    binTokens.caret,
-                    binTokens.parenOpen
+                    tokenParenClose,
+                    { type : 'oper', value : '^', },
+                    tokenParenOpen
                 );
                 continue;
             }
             case '*':
             {
                 __return.push(
-                    ...new Array(2).fill(binTokens.parenClose),
-                    binTokens.star,
-                    ...new Array(2).fill(binTokens.parenOpen)
+                    ...new Array(2).fill(tokenParenClose),
+                    { type : 'oper', value : '*', },
+                    ...new Array(2).fill(tokenParenOpen)
                 );
                 continue;
             }
             case '/':
             {
                 __return.push(
-                    ...new Array(2).fill(binTokens.parenClose),
-                    binTokens.slash,
-                    ...new Array(2).fill(binTokens.parenOpen)
+                    ...new Array(2).fill(tokenParenClose),
+                    { type : 'oper', value : '/', },
+                    ...new Array(2).fill(tokenParenOpen)
                 );
                 continue;
             }
@@ -1026,14 +240,14 @@ function parenthesizeExpression(input: Token[]): Token[]
                 // unary check: either first or had an operator expecting secondary argument
                 if (i === 0 || (prevToken.type === 'punc' && [ ...BASICOperators, '(' ].includes(prevToken.value)))
                 {
-                    __return.push(binTokens.plus);
+                    __return.push(tokenPlus);
                 }
                 else
                 {
                     __return.push(
-                        ...new Array(3).fill(binTokens.parenClose),
-                        binTokens.plus,
-                        ...new Array(3).fill(binTokens.parenOpen)
+                        ...new Array(3).fill(tokenParenClose),
+                        tokenPlus,
+                        ...new Array(3).fill(tokenParenOpen)
                     );
                 }
 
@@ -1045,14 +259,14 @@ function parenthesizeExpression(input: Token[]): Token[]
 
                 if (i === 0 || (prevToken.type === 'punc' && [ ...BASICOperators, '(' ].includes(prevToken.value)))
                 {
-                    __return.push(binTokens.minus);
+                    __return.push(tokenMinus);
                 }
                 else
                 {
                     __return.push(
-                        ...new Array(3).fill(binTokens.parenClose),
-                        binTokens.minus,
-                        ...new Array(3).fill(binTokens.parenOpen)
+                        ...new Array(3).fill(tokenParenClose),
+                        tokenMinus,
+                        ...new Array(3).fill(tokenParenOpen)
                     );
                 }
 
@@ -1063,12 +277,87 @@ function parenthesizeExpression(input: Token[]): Token[]
         __return.push(token);
     }
 
-    __return.push( ...new Array(4).fill(binTokens.parenClose) );
+    __return.push( ...new Array(4).fill(tokenParenClose) );
 
     return __return;
 }
 
-function parseParenthesizedExpression(pExpr: Token[]): ExprNode
+/** Reads the first parentheses encountered. */
+function readParentheses(expr: Token[]): Token[]
+{
+    let depth = 0;
+    let __return: Token[] = [];
+
+    for (const token of expr)
+    {
+        if (token.value === '(')
+        {
+            depth++;
+            if (depth === 1) continue;
+        }
+        else if (token.value === ')' && depth > 0)
+        {
+            depth--;
+            if (depth === 0) break;
+        }
+
+        if (depth > 0)
+        {
+            __return.push(token);
+            continue;
+        }
+    }
+
+    return __return;
+}
+
+/**
+ * Reads parentheses from the stream; current token should be opening parenthesis.
+ * Parentheses from output are omitted.
+ */
+function readParenthesesFromStream(stream: __TokenStream): Token[]
+{
+    const __currToken = stream.peek();
+    if (__currToken === undefined || __currToken === null || __currToken.value !== '(')
+    {
+        throw new Error(BASICErrors.ILL_FORMULA);
+    }
+
+    let depth = 1;
+    let __return: Token[] = [];
+
+    while (!__isLineBreakOrEOF(stream.peek()))
+    {
+        const token = stream.next();
+        if (token === undefined || token === null)
+        {
+            throw new Error(BASICErrors.ILL_FORMULA);
+        }
+
+        if (token.value === '(')
+        {
+            depth++;
+            if (depth === 1) continue;
+        }
+        else if (token.value === ')' && depth > 0)
+        {
+            depth--;
+            if (depth === 0) break;
+        }
+
+        if (depth > 0)
+        {
+            __return.push(token);
+            continue;
+        }
+    }
+
+    stream.next();
+
+    return __return;
+}
+
+function parseParenthesizedExpression(pExpr: Token[]): ExpressionNode
 {
     if (pExpr[0].value === '(')
     {
@@ -1084,7 +373,7 @@ function parseParenthesizedExpression(pExpr: Token[]): ExprNode
             };
         }
 
-        let read = readParenthesesFromList(pExpr);
+        let read = readParentheses(pExpr);
         let binParsed = __parseParenthesizedBinaryExpression(read);
 
         if (binParsed.operator === null)
@@ -1114,7 +403,7 @@ function parseParenthesizedExpression(pExpr: Token[]): ExprNode
         {
             if (pExpr[1] !== undefined && pExpr[1].value === '(')
             {
-                let __readSubscript = readParenthesesFromList(pExpr);
+                let __readSubscript = readParentheses(pExpr);
                 let __subscript = parseCommaSeparatedValues(__readSubscript);
 
                 if (__subscript.length > 1)
@@ -1122,10 +411,8 @@ function parseParenthesizedExpression(pExpr: Token[]): ExprNode
                     return {
                         type : 'TABLEVAR',
                         name : pExpr[0].value,
-                        subscripts : {
-                            sub1 : parseParenthesizedExpression(readParenthesesFromList(__subscript[0])),
-                            sub2 : parseParenthesizedExpression(readParenthesesFromList(__subscript[1])),
-                        },
+                        subscript1 : parseParenthesizedExpression(readParentheses(__subscript[0])),
+                        subscript2 : parseParenthesizedExpression(readParentheses(__subscript[1])),
                     };
                 }
                 else
@@ -1133,7 +420,7 @@ function parseParenthesizedExpression(pExpr: Token[]): ExprNode
                     return {
                         type : 'LISTVAR',
                         name : pExpr[0].value,
-                        subscript : parseParenthesizedExpression(readParenthesesFromList(__subscript[0])),
+                        subscript : parseParenthesizedExpression(readParentheses(__subscript[0])),
                     };
                 }
             }
@@ -1147,15 +434,13 @@ function parseParenthesizedExpression(pExpr: Token[]): ExprNode
         {
             if (!BASICFunctions.includes(pExpr[0].value))
             {
-                __ERROR_LOG__.basic = BASICErrors.ILL_FORMULA;
-                __ERROR_LOG__.extended = `Error at parseParenthesizedExpression() : Cannot parse function call : Undefened function "${pExpr[0].value}".`;
-                throw new Error();
+                throw new Error(BASICErrors.ILL_FORMULA);
             }
 
             return {
                 type : 'FUNCCALL',
                 name : pExpr[0].value,
-                argument : parseParenthesizedExpression(readParenthesesFromList(pExpr)),
+                argument : parseParenthesizedExpression(readParentheses(pExpr)),
             };
         }
         else if (pExpr[0].type === 'keyw' && pExpr[0].value === 'FN')
@@ -1165,52 +450,21 @@ function parseParenthesizedExpression(pExpr: Token[]): ExprNode
                 return {
                     type : 'UFUNCCALL',
                     name : pExpr[0].value + pExpr[1].value,
-                    argument : parseParenthesizedExpression(readParenthesesFromList(pExpr)),
+                    argument : parseParenthesizedExpression(readParentheses(pExpr)),
                 };
             }
             else
             {
-                __ERROR_LOG__.basic = BASICErrors.ILL_FORMULA;
-                __ERROR_LOG__.extended = `Error at parseParenthesizedExpression() : Cannot parse function call : Unexpected token "${pExpr[1]}".`;
-                throw new Error();
+                throw new Error(BASICErrors.ILL_FORMULA);
             }
         }
         else
         {
-            __ERROR_LOG__.extended = `Error at parseParenthesizedExpression() : Cannot parse expression : Unexpected token "${pExpr[0]}".`;
-            throw new Error();
+            throw new Error(BASICErrors.ILL_FORMULA);
         }
     }
 }
 
-/** Reads first encountered parentheses. */
-function readParenthesesFromList(expr: Token[]): Token[]
-{
-    let depth = 0;
-    let __return: Token[] = [];
-
-    for (const token of expr)
-    {
-        if (token.value === binTokens.parenOpen.value)
-        {
-            depth++;
-            if (depth === 1) continue;
-        }
-        else if (token.value === binTokens.parenClose.value && depth > 0)
-        {
-            depth--;
-            if (depth === 0) break;
-        }
-
-        if (depth > 0)
-        {
-            __return.push(token);
-            continue;
-        }
-    }
-
-    return __return;
-}
 
 
 type __preBinNode = __preBinNodeOk | __preBinNodeNof;
@@ -1314,4 +568,611 @@ function __isLineBreakOrEOF(token: Token | null | undefined): boolean
     if (token === null || token === undefined) return true;
 
     return token.type === 'spec' && (token.value === 'LINEBREAK' || token.value === 'ENDOFSTREAM');
+}
+
+
+
+function readToken(stream: __TokenStream): Token
+{
+    const token = stream.peek();
+    if (token === undefined || token === null)
+    {
+        throw new Error(BASICErrors.ILL_FORMULA);
+    }
+
+    stream.next();
+
+    return token;
+}
+
+type __PredicateFunction = (token: Token, readList: Token[]) => boolean;
+
+function readWhile(stream: __TokenStream, predicate: __PredicateFunction): Token[]
+{
+    let tl: Token[] = [];
+
+    while (!stream.isEndOfStream() && predicate(stream.peek(), tl))
+    {
+        tl.push( readToken(stream) );
+    }
+
+    return tl;
+}
+
+function readUntilComma(stream: __TokenStream): Token[]
+{
+    return readWhile(stream, (t, tl) => !__isLineBreakOrEOF(t) && t.value !== ',');
+}
+
+
+function parseNumber(stream: __TokenStream): NumberNode
+{
+    const token = readToken(stream);
+
+    if (token.type === 'oper' && (token.value === '+' || token.value === '-'))
+    {
+        const tokenNext = readToken(stream);
+        if (tokenNext.type !== 'num')
+        {
+            throw new Error(BASICErrors.ILL_FORMULA);
+        }
+
+        return {
+            type : 'NUMBER',
+            value : 0 - tokenNext.value,
+        };
+    }
+
+    if (token.type !== 'num')
+    {
+        throw new Error(BASICErrors.ILL_FORMULA);
+    }
+
+    return {
+        type : 'NUMBER',
+        value : token.value,
+    };
+}
+
+function parseString(stream: __TokenStream): StringNode
+{
+    const token = readToken(stream);
+    if (token.type !== 'str')
+    {
+        throw new Error(BASICErrors.ILL_FORMULA);
+    }
+
+    return {
+        type : 'STRING',
+        value : token.value,
+    };
+}
+
+function parseVariable(stream: __TokenStream): VariableNode
+{
+    const token = readToken(stream);
+    if (token.type !== 'var')
+    {
+        throw new Error(BASICErrors.ILL_FORMULA);
+    }
+
+    const nextToken = stream.peek();
+
+    if (nextToken !== undefined && nextToken.value === '(')
+    {
+        let __readSubscript = readParenthesesFromStream(stream);
+        let __subscript = parseCommaSeparatedValues(__readSubscript);
+
+        if (__subscript.length > 1)
+        {
+            return {
+                type : 'TABLEVAR',
+                name : token.value,
+                subscript1 : parseExpression(__subscript[0]),
+                subscript2 : parseExpression(__subscript[1]),
+            };
+        }
+        else
+        {
+            return {
+                type : 'LISTVAR',
+                name : token.value,
+                subscript : parseExpression(__subscript[0]),
+            };
+        }
+    }
+    else
+    {
+        return {
+            type : 'VARIABLE',
+            name : token.value,
+        };
+    }
+}
+
+function parseExpression(input: Token[]): ExpressionNode
+{
+    let pExpr = parenthesizeExpression(input);
+    return parseParenthesizedExpression(pExpr);
+}
+
+function parseStatementLine(stream: __TokenStream): BASICStatement
+{
+    const lineNumber = parseNumber(stream);
+
+    const statement = readToken(stream);
+    if (statement.type !== 'keyw')
+    {
+        throw new Error(BASICErrors.ILL_FORMULA);
+    }
+    if (!BASICStatements.includes(statement.value))
+    {
+        throw new Error(BASICErrors.ILL_INSTRUCTION);
+    }
+
+
+    switch (statement.value)
+    {
+        // `break;` on the end of the case is for safety reasons.
+        // (Also, in VSCode it makes case fold nicely)
+        // Do not remove.
+
+        case 'LET':
+        {
+            const variable = parseVariable(stream);
+
+            const __relation = readToken(stream);
+            if (__relation.type !== 'rel' || __relation.value !== '=')
+            {
+                throw new Error(BASICErrors.INCORR_FORMAT);
+            }
+
+            const expression = readWhile(stream, (t, tl) => !__isLineBreakOrEOF(t));
+
+            return {
+                line_number : lineNumber.value,
+                statement : statement.value,
+                value : {
+                    variable : variable,
+                    expression : parseExpression(expression),
+                },
+            };
+        }break;
+        case 'READ':
+        {
+            let vars = [];
+
+            while (!__isLineBreakOrEOF(stream.peek()))
+            {
+                vars.push( parseVariable(stream) );
+
+                let maybeComma = stream.peek();
+
+                if (maybeComma !== undefined && maybeComma.value === ',')
+                {
+                    stream.next();
+                    continue;
+                }
+                else
+                {
+                    if (__isLineBreakOrEOF(stream.peek()))
+                    {
+                        break;
+                    }
+                    else
+                    {
+                        throw new Error(BASICErrors.INCORR_FORMAT);
+                    }
+                }
+            }
+
+            return {
+                line_number : lineNumber.value,
+                statement : statement.value,
+                value : vars,
+            };
+        }break;
+        case 'DATA':
+        {
+            let data = [];
+
+            while (!__isLineBreakOrEOF(stream.peek()))
+            {
+                data.push( parseNumber(stream) );
+
+                let maybeComma = stream.peek();
+
+                if (maybeComma !== null && maybeComma.value === ',')
+                {
+                    stream.next();
+                    continue;
+                }
+                else
+                {
+                    if (__isLineBreakOrEOF(stream.peek()))
+                    {
+                        break;
+                    }
+                    else
+                    {
+                        throw new Error(BASICErrors.INCORR_FORMAT);
+                    }
+                }
+            }
+
+            return {
+                line_number : lineNumber.value,
+                statement : statement.value,
+                value : data,
+            };
+        }break;
+        case 'PRINT':
+        {
+            let data: Array<StringNode | [ StringNode, ExpressionNode ] | ExpressionNode> = [];
+            let isLastIsComma = false;
+
+            while (!__isLineBreakOrEOF(stream.peek()))
+            {
+                const token = stream.peek();
+                if (token === undefined || token === null)
+                {
+                    throw new Error(BASICErrors.INCORR_FORMAT);
+                }
+
+                if (token.type === 'str')
+                {
+                    const string = parseString(stream);
+
+                    const nextToken = stream.peek();
+                    if (!__isLineBreakOrEOF(nextToken) && nextToken !== null && nextToken.value !== ',')
+                    {
+                        const expression = readUntilComma(stream);
+
+                        data.push([ string, parseExpression(expression) ]);
+                    }
+                    else
+                    {
+                        data.push(string);
+                    }
+
+                    isLastIsComma = false;
+                    continue;
+                }
+                else if (token.type === 'punc' && token.value === ',')
+                {
+                    stream.next();
+                    isLastIsComma = true;
+                    continue;
+                }
+                else
+                {
+                    const expression = readUntilComma(stream);
+
+                    data.push(parseExpression(expression));
+                    isLastIsComma = false;
+                    continue;
+                }
+            }
+
+            //if (!isLastIsComma) data.push({ type : 'STRING', value : '\n', });
+
+            return {
+                line_number : lineNumber.value,
+                statement : statement.value,
+                value : data,
+            };
+        }break;
+        case 'GOTO':
+        {
+            const GOTOLineNumber = parseNumber(stream);
+            if (GOTOLineNumber.value < 0 || !Number.isInteger(GOTOLineNumber.value))
+            {
+                throw new Error(BASICErrors.ILL_LINE_NUM);
+            }
+
+            return {
+                line_number : lineNumber.value,
+                statement : statement.value,
+                value : GOTOLineNumber,
+            };
+        }break;
+        case 'IF':
+        {
+            const exprLeft = readWhile(stream, (t, tl) => t.type !== 'rel');
+
+            const relation = readToken(stream);
+            if (relation.type !== 'rel')
+            {
+                throw new Error(BASICErrors.INCORR_FORMAT);
+            }
+            if (!BASICConditionOperators.includes(relation.value))
+            {
+                throw new Error(BASICErrors.ILL_REL);
+            }
+
+            const exprRight = readWhile(stream, (t, tl) => t.type !== 'keyw');
+
+            const __THENKeyw = readToken(stream);
+            if (__THENKeyw.value !== 'THEN')
+            {
+                throw new Error(BASICErrors.INCORR_FORMAT);
+            }
+
+            const THENLineNumber = parseNumber(stream);
+            if (THENLineNumber.value < 0 || !Number.isInteger(THENLineNumber.value))
+            {
+                throw new Error(BASICErrors.ILL_LINE_NUM);
+            }
+
+            return {
+                line_number : lineNumber.value,
+                statement : statement.value,
+                value : {
+                    expression_left : parseExpression(exprLeft),
+                    relation : relation.value,
+                    expression_right : parseExpression(exprRight),
+                    then : THENLineNumber,
+                },
+            };
+        }break;
+        case 'FOR':
+        {
+            // unsubscripted variable
+            const unsubVar = parseVariable(stream);
+            if (unsubVar.type !== 'VARIABLE')
+            {
+                throw new Error(BASICErrors.INCORR_FORMAT);
+            }
+
+            // =
+            const __relation = readToken(stream);
+            if (__relation.type !== 'rel' || __relation.value !== '=')
+            {
+                throw new Error(BASICErrors.INCORR_FORMAT);
+            }
+
+            // expression
+            const assignExpression = readWhile(stream, (t, tl) => t.type !== 'keyw');
+
+            // TO
+            const __TOKeyw = readToken(stream);
+            if (__TOKeyw.value !== 'TO')
+            {
+                throw new Error(BASICErrors.INCORR_FORMAT);
+            }
+
+            // expression
+            const TOExpression = readWhile(stream, (t, tl) => t.type !== 'keyw');
+
+            // (optional)
+
+            // STEP
+            const __STEPKeyw = stream.peek();
+
+            // expression
+            let STEPExpr: Array<Token>;
+
+            if (__isLineBreakOrEOF(__STEPKeyw))
+            {
+                // if STEP is omitted (defaults to 1 (maybe))
+                // `Omitting the STEP part is the same as assuming the step-size to be unity.`
+                STEPExpr = [ { type : 'num', value : 1, } ];
+            }
+            else
+            {
+                if (__STEPKeyw.value !== 'STEP')
+                {
+                    throw new Error(BASICErrors.INCORR_FORMAT);
+                }
+
+                stream.next();
+                STEPExpr = readWhile(stream, (t, tl) => !__isLineBreakOrEOF(t));
+            }
+
+
+            return {
+                line_number : lineNumber.value,
+                statement : statement.value,
+                value : {
+                    variable : unsubVar,
+                    expression : parseExpression(assignExpression),
+                    to : parseExpression(TOExpression),
+                    step : parseExpression(STEPExpr),
+                },
+            };
+        }break;
+        case 'NEXT':
+        {
+            const unsubVar = parseVariable(stream);
+            if (unsubVar.type !== 'VARIABLE')
+            {
+                throw new Error(BASICErrors.INCORR_FORMAT);
+            }
+
+            return {
+                line_number : lineNumber.value,
+                statement : statement.value,
+                value : unsubVar,
+            };
+        }break;
+        case 'END':
+        {
+            return {
+                line_number : lineNumber.value,
+                statement : statement.value,
+            };
+        }break;
+        case 'STOP':
+        {
+            return {
+                line_number : lineNumber.value,
+                statement : statement.value,
+            };
+        }break;
+        case 'DEF':
+        {
+            // FN
+            const __FNKeyw = readToken(stream);
+            if (__FNKeyw.value !== 'FN')
+            {
+                throw new Error(BASICErrors.INCORR_FORMAT);
+            }
+
+            // letter
+            const letter = readToken(stream);
+            if (letter.type !== 'var')
+            {
+                throw new Error(BASICErrors.INCORR_FORMAT);
+            }
+
+            // unsubscripted variable
+            const unsubVar = readParenthesesFromStream(stream);
+            if (unsubVar.length > 1 || unsubVar[0].type !== 'var')
+            {
+                throw new Error(BASICErrors.INCORR_FORMAT);
+            }
+
+            // =
+            const __relation = readToken(stream);
+            if (__relation.type !== 'rel' || __relation.value !== '=')
+            {
+                throw new Error(BASICErrors.INCORR_FORMAT);
+            }
+
+            // expression
+            const expression = readWhile(stream, (t, tl) => !__isLineBreakOrEOF(t));
+
+            return {
+                line_number : lineNumber.value,
+                statement : statement.value,
+                value : {
+                    name : __FNKeyw.value + letter.value,
+                    variable : {
+                        type : 'VARIABLE',
+                        name : unsubVar[0].value,
+                    },
+                    expression : parseExpression(expression),
+                },
+            };
+        }break;
+        case 'GOSUB':
+        {
+            const GOSUBLineNumber = parseNumber(stream);
+            if (GOSUBLineNumber.value < 0 || !Number.isInteger(GOSUBLineNumber.value))
+            {
+                throw new Error(BASICErrors.ILL_LINE_NUM);
+            }
+
+            return {
+                line_number : lineNumber.value,
+                statement : statement.value,
+                value : GOSUBLineNumber,
+            };
+        }break;
+        case 'RETURN':
+        {
+            return {
+                line_number : lineNumber.value,
+                statement : statement.value,
+            };
+        }break;
+        case 'DIM':
+        {
+            let dims: __Dimension[] = [];
+
+            while (!__isLineBreakOrEOF(stream.peek()))
+            {
+                const letter = readToken(stream);
+                if (letter.type !== 'var')
+                {
+                    throw new Error(BASICErrors.INCORR_FORMAT);
+                }
+
+                const __paren = readParenthesesFromStream(stream);
+                if (__paren.length > 1)
+                {
+                    const int1 = __paren[0];
+                    if (int1.type !== 'num' || !Number.isInteger(int1.value))
+                    {
+                        throw new Error(BASICErrors.ILL_CONST);
+                    }
+
+                    const __comma = __paren[1];
+                    if (__comma === undefined || __comma.value !== ',')
+                    {
+                        throw new Error(BASICErrors.INCORR_FORMAT);
+                    }
+
+                    const int2 = __paren[2];
+                    if (int2 === undefined || int2.type !== 'num' || !Number.isInteger(int2.value))
+                    {
+                        throw new Error(BASICErrors.ILL_CONST);
+                    }
+
+                    dims.push({
+                        type : 'table',
+                        name : letter.value,
+                        dim1 : int1.value,
+                        dim2 : int2.value,
+                    });
+                }
+                else if (__paren.length === 1)
+                {
+                    const integer = __paren[0];
+                    if (integer.type !== 'num' || !Number.isInteger(integer.value))
+                    {
+                        throw new Error(BASICErrors.ILL_CONST);
+                    }
+
+                    dims.push({
+                        type : 'list',
+                        name : letter.value,
+                        dim : integer.value,
+                    });
+                }
+                else
+                {
+                    throw new Error(BASICErrors.INCORR_FORMAT);
+                }
+
+
+                let maybeComma = stream.peek();
+
+                if (maybeComma !== null && maybeComma.value === ',')
+                {
+                    stream.next();
+                    continue;
+                }
+                else
+                {
+                    if (__isLineBreakOrEOF(stream.peek()))
+                    {
+                        break;
+                    }
+                    else
+                    {
+                        throw new Error(BASICErrors.INCORR_FORMAT);
+                    }
+                }
+            }
+
+            return {
+                line_number : lineNumber.value,
+                statement : statement.value,
+                value : dims,
+            };
+        }break;
+        case 'REM':
+        {
+            return {
+                line_number : lineNumber.value,
+                statement : statement.value,
+            };
+        }break;
+
+        default:
+        {
+            throw new Error(BASICErrors.ILL_FORMULA);
+        }
+    }
 }

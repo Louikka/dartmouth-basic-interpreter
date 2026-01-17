@@ -2,6 +2,8 @@ import * as fs from 'node:fs';
 
 // @ts-ignore
 import * as Lexer from './Lexer.ts';
+// @ts-ignore
+import * as Parser from './Parser.ts';
 
 
 
@@ -21,14 +23,11 @@ const test = `
 90  END
 `;
 
-let [l, err] = Lexer.Analyse(test, { rethrow : true, });
+let [l, lerr] = Lexer.Analyse(test, { rethrow : true, });
 
-if (err !== null)
-{
-    //
-}
+let [p, perr] = Parser.Parse(l, { rethrow : true, });
 
-fs.writeFile('test_results.txt', JSON.stringify(l, null, 2), (err) =>
+fs.writeFile('test_results.txt', JSON.stringify(p, null, 2), (err) =>
 {
     if (err)
     {
