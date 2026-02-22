@@ -1,19 +1,58 @@
 // @ts-ignore
-import { padStringToModulo, sliceArrayIntoChunks } from './__helpers.ts';
-// @ts-ignore
-import { BASICErrors } from './errors.ts';
+import { BASICErrors } from './helpers/BASICErrors.ts';
 
 
-type ErrorLog = {
-    basic: string | null;
-    extended: string | null;
+interface InterpreterExecuteOptions {
+    /** Rethrows interpreter error, if any occures. */
+    rethrow: boolean;
 }
 
-export const __ERROR_LOG__: ErrorLog = {
-    basic : null,
-    extended : null,
-};
+const DEFAULT_INTERPRETER_EXECUTE_OPTIONS: InterpreterExecuteOptions = {
+    rethrow : false,
+}
 
+export function Execute(ASTree: ASTRoot, options?: InterpreterExecuteOptions): ErrorMessage
+{
+    if (options === undefined)
+    {
+        options = structuredClone(DEFAULT_INTERPRETER_EXECUTE_OPTIONS);
+    }
+    else
+    {
+        for (const [key, value] of Object.entries(options))
+        {
+            if (value === undefined)
+            {
+                options[key as keyof InterpreterExecuteOptions] = DEFAULT_INTERPRETER_EXECUTE_OPTIONS[key as keyof InterpreterExecuteOptions];
+            }
+        }
+    }
+
+
+    try
+    {
+        const interpreter = new Interpreter(ASTree);
+        interpreter.execute();
+    }
+    catch (err)
+    {
+        if (err instanceof Error)
+        {
+            if (options.rethrow) throw err;
+            return err.message;
+        }
+        else
+        {
+            throw err;
+        }
+    }
+
+    return null;
+}
+
+
+
+/* Helpers *******************************************************************/
 
 type __VariableTypes = 'var' | __ListOrTable;
 type __ListOrTable = 'list' | 'table';
@@ -21,22 +60,22 @@ type __ListOrTable = 'list' | 'table';
 type ProgramDim = __Dimension;
 type ProgramFunction = __FuncDef;
 
-export class Interpreter
+class Interpreter
 {
     constructor(ast: ASTRoot)
     {
-        this.ASTtree = ast;
-        this.ASTtreeNormalized = this.normalize();
+        this.ASTree = ast;
+        this.ASTreeNormalized = this.normalize();
     }
 
 
 
-    private ASTtree: ASTRoot;
-    private ASTtreeNormalized: ASTRoot;
+    private ASTree: ASTRoot;
+    private ASTreeNormalized: ASTRoot;
 
-    public get normalizedASTTree(): ASTRoot
+    public get normalizedASTree(): ASTRoot
     {
-        return this.ASTtreeNormalized;
+        return this.ASTreeNormalized;
     }
 
 
@@ -67,9 +106,7 @@ export class Interpreter
         const v = this.PROGRAM_FUNCTIONS.find(v => v.name === name);
         if (v === undefined)
         {
-            __ERROR_LOG__.basic = BASICErrors.ILL_FORMULA
-            __ERROR_LOG__.extended = `Error at Interpreter.(private)getProgramVariable() : Undeclared fucntion.`;
-            throw new Error();
+            throw new Error(BASICErrors.ILL_FORMULA);
         }
 
         return v;
@@ -96,9 +133,7 @@ export class Interpreter
         const v = this.PROGRAM_VARIABLES.find(v => (v.type === type && v.name === name));
         if (v === undefined)
         {
-            __ERROR_LOG__.basic = BASICErrors.ILL_FORMULA;
-            __ERROR_LOG__.extended = `Error at Interpreter.(private)getProgramVariable() : Undeclared variable.`;
-            throw new Error();
+            throw new Error(BASICErrors.ILL_FORMULA);
         }
 
         return v;
@@ -133,7 +168,7 @@ export class Interpreter
         }
     }
 
-    private parseExpression(expr: ExprNode): number
+    private parseExpression(expr: ExpressionNode): number
     {
         if (expr.type === 'NUMBER')
         {
@@ -145,9 +180,7 @@ export class Interpreter
             const value = (this.getProgramVariable('var', expr.name) as UnsubscriptedVariable).getValue();
             if (value === null)
             {
-                __ERROR_LOG__.basic = BASICErrors.ILL_FORMULA;
-                __ERROR_LOG__.extended = `Error at Interpreter.(private)parseExpression() : Undeclared variable.`;
-                throw new Error();
+                throw new Error(BASICErrors.ILL_FORMULA);
             }
 
             return value;
@@ -157,9 +190,7 @@ export class Interpreter
             const value = (this.getProgramVariable('list', expr.name) as ListVariable).getValue(this.parseExpression(expr.subscript));
             if (value === null)
             {
-                __ERROR_LOG__.basic = BASICErrors.ILL_FORMULA;
-                __ERROR_LOG__.extended = `Error at Interpreter.(private)parseExpression() : Undeclared list.`;
-                throw new Error();
+                throw new Error(BASICErrors.ILL_FORMULA);
             }
 
             return value;
@@ -169,9 +200,7 @@ export class Interpreter
             const value = (this.getProgramVariable('table', expr.name) as TableVariable).getValue(this.parseExpression(expr.subscripts.sub1), this.parseExpression(expr.subscripts.sub2));
             if (value === null)
             {
-                __ERROR_LOG__.basic = BASICErrors.ILL_FORMULA;
-                __ERROR_LOG__.extended = `Error at Interpreter.(private)parseExpression() : Undeclared table.`;
-                throw new Error();
+                throw new Error(BASICErrors.ILL_FORMULA);
             }
 
             return value;
@@ -189,9 +218,7 @@ export class Interpreter
 
                 default:
                 {
-                    __ERROR_LOG__.basic = BASICErrors.ILL_FORMULA;
-                    __ERROR_LOG__.extended = `Error at Interpreter.(private)parseExpression() : Undefined operator "${expr.operator}".`;
-                    throw new Error();
+                    throw new Error(BASICErrors.ILL_FORMULA);
                 }
             }
         }
@@ -213,9 +240,7 @@ export class Interpreter
 
                 default:
                 {
-                    __ERROR_LOG__.basic = BASICErrors.ILL_FORMULA;
-                    __ERROR_LOG__.extended = `Error at Interpreter.(private)parseExpression() : Cannot parse function call : Undefened function "${expr.name}".`;
-                    throw new Error();
+                    throw new Error(BASICErrors.ILL_FORMULA);
                 }
             }
         }
@@ -233,8 +258,6 @@ export class Interpreter
             return this.parseExpression(__func.expression);
         }
 
-        __ERROR_LOG__.basic = null;
-        __ERROR_LOG__.extended = `Error at Interpreter.(private)parseExpression() : Undefined expression "${expr}".`;
         throw new Error();
     }
 
@@ -242,7 +265,7 @@ export class Interpreter
     /**
      * @param ast parsed AST tree. If abscent, takes the AST given to the class.
      */
-    public normalize(ast = this.ASTtree): ASTRoot
+    public normalize(ast = this.ASTree): ASTRoot
     {
         let __return: typeof ast.value = [];
 
@@ -252,7 +275,7 @@ export class Interpreter
         }
 
         return {
-            type : 'PROGRAM',
+            type : 'ROOT',
             value : __return,
         };
     }
@@ -260,13 +283,8 @@ export class Interpreter
 
     public execute()
     {
-        const ASTRootType = this.ASTtreeNormalized.type;
-        if (ASTRootType !== 'PROGRAM')
-        {
-            __ERROR_LOG__.extended = `Error at Interpreter.(public)execute() : Expected a "PROGRAM" AST type.`;
-            throw new Error();
-        }
-        const ASTRootValue = this.ASTtreeNormalized.value;
+        const ASTRootType = this.ASTreeNormalized.type;
+        const ASTRootValue = this.ASTreeNormalized.value;
 
 
         // flags
@@ -280,9 +298,7 @@ export class Interpreter
 
             if (isENDEncountered && !this.allowedStatementsAfterEND.includes(line.statement))
             {
-                __ERROR_LOG__.basic = BASICErrors.END_NOT_LAST;
-                __ERROR_LOG__.extended = `Error at Interpreter.(public)execute() in FIRST_LOOP.`;
-                throw new Error();
+                throw new Error(BASICErrors.END_NOT_LAST);
             }
 
             switch (line.statement)
@@ -339,9 +355,7 @@ export class Interpreter
 
         if (!isENDEncountered)
         {
-            __ERROR_LOG__.basic = BASICErrors.NO_END;
-            __ERROR_LOG__.extended = `Error at Interpreter.(public)execute().`;
-            throw new Error();
+            throw new Error(BASICErrors.NO_END);
         }
 
         // generally, should not be used in the `SECOND_LOOP` loop
@@ -555,15 +569,11 @@ class ListVariable
     {
         if (!Number.isInteger(i))
         {
-            __ERROR_LOG__.basic = BASICErrors.ILL_CONST;
-            __ERROR_LOG__.extended = `Error at ListVariable.(public)getValue().`;
-            throw new Error();
+            throw new Error(BASICErrors.ILL_CONST);
         }
         if (i < 0 || i > this.dim)
         {
-            __ERROR_LOG__.basic = BASICErrors.SUBSCRIPT;
-            __ERROR_LOG__.extended = `Error at ListVariable.(public)getValue().`;
-            throw new Error();
+            throw new Error(BASICErrors.SUBSCRIPT);
         }
 
         return this.__value[i] ?? null;
@@ -572,15 +582,11 @@ class ListVariable
     {
         if (!Number.isInteger(i))
         {
-            __ERROR_LOG__.basic = BASICErrors.ILL_CONST;
-            __ERROR_LOG__.extended = `Error at ListVariable.(public)setValue().`;
-            throw new Error();
+            throw new Error(BASICErrors.ILL_CONST);
         }
         if (i < 0 || i > this.dim)
         {
-            __ERROR_LOG__.basic = BASICErrors.SUBSCRIPT;
-            __ERROR_LOG__.extended = `Error at ListVariable.(public)setValue().`;
-            throw new Error();
+            throw new Error(BASICErrors.SUBSCRIPT);
         }
 
         this.__value[i] = v;
@@ -597,15 +603,11 @@ class ListVariable
     {
         if (!Number.isInteger(to))
         {
-            __ERROR_LOG__.basic = BASICErrors.ILL_CONST;
-            __ERROR_LOG__.extended = `Error at ListVariable.(public)setDimension().`;
-            throw new Error();
+            throw new Error(BASICErrors.ILL_CONST);
         }
         if (to < 0 || to > 1500)
         {
-            __ERROR_LOG__.basic = BASICErrors.SUBSCRIPT;
-            __ERROR_LOG__.extended = `Error at ListVariable.(public)setDimension().`;
-            throw new Error();
+            throw new Error(BASICErrors.SUBSCRIPT);
         }
 
         this.__dim = to;
@@ -642,15 +644,11 @@ class TableVariable
     {
         if (!Number.isInteger(i1) || !Number.isInteger(i2))
         {
-            __ERROR_LOG__.basic = BASICErrors.ILL_CONST;
-            __ERROR_LOG__.extended = `Error at TableVariable.(public)getValue().`;
-            throw new Error();
+            throw new Error(BASICErrors.ILL_CONST);
         }
         if (i1 < 0 || i1 > this.dimRow || i2 < 0 || i2 > this.dimCol)
         {
-            __ERROR_LOG__.basic = BASICErrors.SUBSCRIPT;
-            __ERROR_LOG__.extended = `Error at TableVariable.(public)getValue().`;
-            throw new Error();
+            throw new Error(BASICErrors.SUBSCRIPT);
         }
 
         return this.__value[i1][i2] ?? null;
@@ -659,15 +657,11 @@ class TableVariable
     {
         if (!Number.isInteger(i1) || !Number.isInteger(i2))
         {
-            __ERROR_LOG__.basic = BASICErrors.ILL_CONST;
-            __ERROR_LOG__.extended = `Error at TableVariable.(public)setValue().`;
-            throw new Error();
+            throw new Error(BASICErrors.ILL_CONST);
         }
         if (i1 < 0 || i1 > this.dimRow || i2 < 0 || i2 > this.dimCol)
         {
-            __ERROR_LOG__.basic = BASICErrors.SUBSCRIPT;
-            __ERROR_LOG__.extended = `Error at TableVariable.(public)setValue().`;
-            throw new Error();
+            throw new Error(BASICErrors.SUBSCRIPT);
         }
 
         this.__value[i1][i2] = v;
@@ -690,15 +684,11 @@ class TableVariable
     {
         if (!Number.isInteger(row) || !Number.isInteger(col))
         {
-            __ERROR_LOG__.basic = BASICErrors.ILL_CONST;
-            __ERROR_LOG__.extended = `Error at TableVariable.(public)setDimensions().`;
-            throw new Error();
+            throw new Error(BASICErrors.ILL_CONST);
         }
         if (row < 0 || row > 1500 || col < 0 || col > 1500)
         {
-            __ERROR_LOG__.basic = BASICErrors.SUBSCRIPT;
-            __ERROR_LOG__.extended = `Error at TableVariable.(public)setDimensions().`;
-            throw new Error();
+            throw new Error(BASICErrors.SUBSCRIPT);
         }
 
         this.__dimRow = row;
