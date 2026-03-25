@@ -1,6 +1,8 @@
-package parser
+package scanner
 
-import "fmt"
+import (
+	"fmt"
+)
 
 type Scanner struct {
 	Input           string
@@ -12,7 +14,7 @@ func (scanner *Scanner) Peek(pos int) (byte, error) {
 	newPos := scanner.CurrentPosition + pos
 
 	if newPos < 0 || newPos >= strlen {
-		return 0, fmt.Errorf("(E001) Scanner trying to access character that out of bounds (peeking at position %d in string with length %d).", newPos, strlen)
+		return 0, fmt.Errorf("002Scanner trying to access character that out of bounds (peeking at position %d in string with length %d).", newPos, strlen)
 	}
 
 	return scanner.Input[newPos], nil
