@@ -1,15 +1,3 @@
-type Token =
-    | PuncToken
-    | NumToken
-    | StrToken
-    | KeywToken
-    | VarToken | UnsubVarToken | ListVarToken | TableVarToken
-    | FuncToken
-    | OperToken
-    | RelToken
-    | SpecToken
-;
-
 type PuncToken = {
     type: 'punc';
     value: string;
@@ -47,18 +35,14 @@ type SpecToken = {
     value: 'LINEBREAK' | 'ENDOFSTREAM';
 };
 
-type UnsubVarToken = {
-    type: 'unsub';
-    value: string;
-};
-type ListVarToken = {
-    type: 'list';
-    value: string;
-    subscript: Token[];
-};
-type TableVarToken = {
-    type: 'table';
-    value: string;
-    subscript1: Token[];
-    subscript2: Token[];
-};
+type Token =
+    | PuncToken
+    | NumToken
+    | StrToken
+    | KeywToken
+    | VarToken
+    | FuncToken
+    | OperToken
+    | RelToken
+    | SpecToken
+;
