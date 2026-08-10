@@ -1,5 +1,2 @@
 *.code-workspace
 *.ini
-
-node_modules/
-package-lock.json

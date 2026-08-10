@@ -1,10 +1,5 @@
 package utils
 
-import (
-	"strconv"
-	"strings"
-)
-
 // Indices matches as follow:
 //
 //	0 = "DIMENSION TOO LARGE" // The size of a list or a table is too large for the availible storage. Make them smaller.
@@ -52,36 +47,4 @@ var BASICErrors = []string{
 	"CUT PROGRAM OR DIMS",
 	"SUBSCRIPT ERROR",
 	"ILLEGAL RETURN",
-}
-
-type ParsedDevError struct {
-	// Parsed index of error in [BASICErrors].
-	Index           int
-	OriginalMessage string
-	BasicMessage    string
-}
-
-// Note, that in `errmsg` first 3 symbols should be the numbers or spaces (e.g. `"001sdhsjaagsd"` or `"  5 shdhjj"`).
-func ParseDevErrorMessage(errmsg string) ParsedDevError {
-	var e ParsedDevError = ParsedDevError{}
-
-	errmsgIndex := strings.TrimSpace(errmsg[:3])
-	errmsgString := strings.TrimSpace(errmsg[4:])
-
-	e.OriginalMessage = errmsgString
-
-	i, err := strconv.Atoi(errmsgIndex)
-	if err != nil {
-		return e
-	}
-
-	e.Index = i
-
-	if i < 0 || i >= len(BASICErrors) {
-		return e
-	}
-
-	e.BasicMessage = BASICErrors[i]
-
-	return e
 }

@@ -5,35 +5,35 @@ import (
 )
 
 type Scanner struct {
-	Input           string
-	CurrentPosition int
+	s   string
+	pos int
 }
 
-func (scanner *Scanner) Peek(pos int) (byte, error) {
-	strlen := len(scanner.Input)
-	newPos := scanner.CurrentPosition + pos
+func (scanner *Scanner) peek(pos int) (byte, error) {
+	strlen := len(scanner.s)
+	newPos := scanner.pos + pos
 
 	if newPos < 0 || newPos >= strlen {
-		return 0, fmt.Errorf("002Scanner trying to access character that out of bounds (peeking at position %d in string with length %d).", newPos, strlen)
+		return 0, fmt.Errorf("Trying to access character out of bounds (%d).", newPos)
 	}
 
-	return scanner.Input[newPos], nil
+	return scanner.s[newPos], nil
 }
 
-func (scanner *Scanner) Next() (byte, error) {
-	scanner.CurrentPosition++
-	return scanner.Peek(0)
+func (scanner *Scanner) next() (byte, error) {
+	scanner.pos++
+	return scanner.peek(0)
 }
 
 // Returns true if current position is greater or equal to length of the input; otherwise returns false.
-func (scanner *Scanner) IsEndOfString() bool {
-	strlen := len(scanner.Input)
-	return scanner.CurrentPosition >= strlen
+func (scanner *Scanner) isEOF() bool {
+	strlen := len(scanner.s)
+	return scanner.pos >= strlen
 }
 
 func NewScanner(s string) *Scanner {
 	return &Scanner{
-		Input:           s,
-		CurrentPosition: 0,
+		s:   s,
+		pos: 0,
 	}
 }
