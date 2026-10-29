@@ -1,0 +1,20 @@
+{
+  "name": "dartmouth-basic-interpreter",
+  "version": "0.0.0",
+  "description": "",
+  "homepage": "https://github.com/Louikka/dartmouth-basic-interpreter#readme",
+  "bugs": {
+    "url": "https://github.com/Louikka/dartmouth-basic-interpreter/issues"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/Louikka/dartmouth-basic-interpreter.git"
+  },
+  "type": "module",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "devDependencies": {
+    "typescript": "^7.0.2"
+  }
+}

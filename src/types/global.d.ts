@@ -1,1 +1,0 @@
-type ErrorMessage = string | null;
