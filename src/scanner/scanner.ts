@@ -1,6 +1,6 @@
 import { BASICIllFormulaError } from '../errors';
 import { isFunction, isKeyword, isOperator, isPunctuation, isRelation } from '../lexemes';
-import { isDigit, isLetter, isWhitespace } from './is';
+import { isDigit, isLetter, isWhitespace } from '../is';
 import {
     Token,
     TokenInvalid,
@@ -127,24 +127,20 @@ class Scanner
         return new TokenString(s, `"${s}"`, 0);
     }
 
-    public readVariable(): TokenWord
-    {
-        let v = this.readwhile((char, b, a, s) =>
-        {
-            if (s.length === 0 && isLetter(char)) return true;
-            if (s.length === 1 && isDigit(char)) return true;
-            // if (s.length === 2) return false;
-            return false;
-        });
-
-        return new TokenWord(v, 'VARIABLE', v, 0);
-    }
-
     public readWord(): TokenWord
     {
         let type: WordType | undefined = undefined;
+
         let v = this.readwhile((char, b, a, s) =>
         {
+            if (type === 'VARIABLE') return false;
+
+            if (s.length === 1 && isDigit(char))
+            {
+                type = 'VARIABLE';
+                return true;
+            }
+
             if (isKeyword(s))
             {
                 type = 'KEYWORD';
@@ -157,7 +153,7 @@ class Scanner
                 return false;
             }
 
-            return /[A-Z]/i.test(char);
+            return isLetter(char);
         });
 
         if (type === undefined)
@@ -188,11 +184,6 @@ class Scanner
         if (isDigit(char))
         {
             return this.readNumber();
-        }
-
-        if (isLetter(char) && !isLetter(this.peek(1)))
-        {
-            return this.readVariable();
         }
 
         if (isLetter(char))
