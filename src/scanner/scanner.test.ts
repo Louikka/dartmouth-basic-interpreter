@@ -97,15 +97,14 @@ test.for([
 
 
 test.for([
-    { s: '10 LET A = 0', expected: '10LETA=0' },
-    { s: '1PRINT"a = ",8', expected: '1PRINT"A = ",8' },
-    { s: '999      IfD = 0 THEN65   ', expected: '999IFD=0THEN65' },
+    { s: '10 LET A = 0', expected: '10 LET A = 0' },
+    { s: '1PRINT"a = ",8', expected: '1 PRINT "A = " , 8' },
+    { s: '999      IfD= 0 THEN65   ', expected: '999 IF D = 0 THEN 65' },
 ])('`$v` => `$expected`', ({ s, expected }) =>
 {
     const l = scanLine(s);
-    console.debug(l);
+    //console.log(l);
 
-    const ls = l.map(t => t.toString()).join('');
-
+    const ls = l.map(t => t.toString()).join(' ');
     expect(ls).toBe(expected);
 });
