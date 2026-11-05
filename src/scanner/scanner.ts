@@ -212,12 +212,27 @@ export class Scanner
 
     public readOperator(): TokenOperator
     {
-        throw 'TODO';
+        const currPos = this.pos;
+
+        let s = this.peek();
+
+        if (!this.isLast())
+        {
+            const c2 = this.next();
+            if (c2 === '=' || c2 === '>')
+            {
+                s += c2;
+                this.pos++;
+            }
+        }
+
+        return new TokenOperator(s, currPos, s);
     }
 
     public readPunctuation(): TokenPunctuation
     {
         const char = this.peek();
+        this.pos++;
         return new TokenPunctuation(char, this.pos, char);
     }
 
@@ -272,4 +287,32 @@ export class Scanner
 
         throw new BASICIllFormulaError(`Undefined character "${char}".`);
     }
+}
+
+
+export function scanLine(line: string): Token[]
+{
+    if (line.includes('\n'))
+    {
+        throw new Error('Cannot scan line: line contains new line character ("\\n").');
+    }
+
+    const sc = new Scanner(line);
+    const r: Token[] = [];
+
+    while (!sc.isEOF())
+    {
+        r.push(sc.readNextToken());
+    }
+
+    return r;
+}
+
+export function scan(s: string): Array<Token[]>
+{
+    return s
+        .split('\n')
+        .map(line => line.trim())
+        .filter(line => line !== '')
+        .map(scanLine);
 }
