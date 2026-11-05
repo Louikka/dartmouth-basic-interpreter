@@ -50,7 +50,7 @@ export class TokenString extends Token
     {
         super();
 
-        this.value = value;
+        this.value = `"${value}"`;
         this.pos = pos;
         this.literal = literal;
     }

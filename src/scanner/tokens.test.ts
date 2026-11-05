@@ -1,6 +1,6 @@
 import { describe, expect, test } from 'vitest';
 
-import { Token } from './tokens';
+import { Token, TokenString } from './tokens';
 
 
 class TokenTest extends Token
@@ -28,5 +28,11 @@ describe('Token.toString() should strinfify value correctly', () =>
     {
         const t = new TokenTest(v, 0, '');
         expect(t.toString()).toBe(expected);
+    });
+
+    test('special case for TokenString', () =>
+    {
+        const t = new TokenString('i am a test string', 0, '');
+        expect(t.toString()).toBe('"i am a test string"');
     });
 });
