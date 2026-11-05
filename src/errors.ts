@@ -1,4 +1,4 @@
-abstract class BASICError extends Error
+export abstract class BASICError extends Error
 {
     constructor(message?: string, options?: ErrorOptions)
     {
