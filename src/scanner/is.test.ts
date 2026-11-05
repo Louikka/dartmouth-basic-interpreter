@@ -18,17 +18,21 @@ function _constructDigitLiterals()
 }
 
 test.for([
+    { char: '', expected: false },
     ..._constructDigitLiterals(),
     { char: 'a', expected: false },
     { char: 'B', expected: false },
     { char: '123', expected: true },
     { char: 'abc', expected: false },
+    { char: null, expected: false },
+    { char: undefined, expected: false },
 ])(`isDigit($char) => $expected`, ({ char, expected }) =>
 {
     expect(isDigit(char)).toBe(expected);
 });
 
 test.for([
+    { char: '', expected: false },
     { char: 'a', expected: true },
     { char: 'B', expected: true },
     { char: 'Й', expected: false },
@@ -38,12 +42,15 @@ test.for([
     { char: '123', expected: false },
     { char: '123abc', expected: false },
     { char: 'abc123', expected: true },
+    { char: null, expected: false },
+    { char: undefined, expected: false },
 ])(`isLetter($char) => $expected`, ({ char, expected }) =>
 {
     expect(isLetter(char)).toBe(expected);
 });
 
 test.for([
+    { char: '', expected: false },
     { char: ' ', expected: true },
     { char: '\t', expected: true },
     { char: '\v', expected: true },
@@ -54,6 +61,8 @@ test.for([
     { char: '1', expected: false },
     { char: 'B ', expected: false },
     { char: '\\\t', expected: false },
+    { char: null, expected: false },
+    { char: undefined, expected: false },
 ])(`isWhitespace($char) => $expected`, ({ char, expected }) =>
 {
     expect(isWhitespace(char)).toBe(expected);

@@ -2,8 +2,9 @@ export abstract class Token
 {
     public abstract readonly value: any;
 
-    public abstract readonly lexeme: string;
     public abstract readonly pos: number;
+    public abstract readonly literal: string;
+
 
     public toString(): string
     {
@@ -14,65 +15,99 @@ export abstract class Token
 
 export class TokenInvalid extends Token
 {
-    constructor()
+    constructor(pos?: number, literal?: string)
     {
         super();
+
+        this.pos = pos ?? 0;
+        this.literal = literal ?? '';
     }
 
     public readonly value = null;
-    public readonly lexeme = '';
-    public readonly pos = 0;
+    public readonly literal;
+    public readonly pos;
 }
 
 export class TokenNumber extends Token
 {
-    constructor(public readonly value: number,
-                public readonly lexeme: string,
-                public readonly pos: number)
+    constructor(value: number, pos: number, literal: string)
     {
         super();
+
+        this.value = value;
+        this.pos = pos;
+        this.literal = literal;
     }
+
+    public readonly value: number;
+    public readonly literal;
+    public readonly pos;
 }
 
 export class TokenString extends Token
 {
-    constructor(public readonly value: string,
-                public readonly lexeme: string,
-                public readonly pos: number)
+    constructor(value: string, pos: number, literal: string)
     {
         super();
+
+        this.value = value;
+        this.pos = pos;
+        this.literal = literal;
     }
+
+    public readonly value: string;
+    public readonly literal;
+    public readonly pos;
 }
 
 export type WordType = 'VARIABLE' | 'FUNCTION' | 'KEYWORD';
 
 export class TokenWord extends Token
 {
-    constructor(public readonly value: string,
-                public readonly type: WordType,
-                public readonly lexeme: string,
-                public readonly pos: number)
+    constructor(value: string, type: WordType, pos: number, literal: string)
     {
         super();
+
+        this.value = value;
+        this.type = type;
+        this.pos = pos;
+        this.literal = literal;
     }
+
+    public readonly value: string;
+    public readonly type: WordType;
+    public readonly literal;
+    public readonly pos;
 }
 
 export class TokenOperator extends Token
 {
-    constructor(public readonly value: string,
-                public readonly lexeme: string,
-                public readonly pos: number)
+    constructor(value: string, pos: number, literal: string)
     {
         super();
+
+        this.value = value;
+        this.pos = pos;
+        this.literal = literal;
     }
+
+    public readonly value: string;
+    public readonly literal;
+    public readonly pos;
 }
 
 export class TokenPunctuation extends Token
 {
-    constructor(public readonly value: string,
-                public readonly lexeme: string,
-                public readonly pos: number)
+    constructor(value: string, pos: number, literal: string)
     {
         super();
+
+        this.value = value;
+        this.pos = pos;
+        this.literal = literal;
     }
+
+    public readonly value: string;
+    public readonly literal;
+    public readonly pos;
 }

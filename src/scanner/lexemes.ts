@@ -50,7 +50,7 @@ export function isRelation(s: string): boolean
 }
 
 
-export const BASICPunctuation = [ '(', ')', ',', ';' ];
+export const BASICPunctuation = [ '(', ')', ',' ];
 
 export function isPunctuation(s: string): boolean
 {
