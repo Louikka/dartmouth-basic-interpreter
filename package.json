@@ -1,12 +1,21 @@
 {
   "name": "dartmouth-basic-interpreter",
-  "private": true,
   "version": "0.0.0",
+  "description": "",
+  "homepage": "https://github.com/Louikka/dartmouth-basic-interpreter#readme",
+  "bugs": {
+    "url": "https://github.com/Louikka/dartmouth-basic-interpreter/issues"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/Louikka/dartmouth-basic-interpreter.git"
+  },
+  "type": "module",
   "scripts": {
-    "check": "tsc"
+    "test": "vitest"
   },
   "devDependencies": {
-    "esbuild": "^0.28.1",
-    "typescript": "^7.0.2"
+    "typescript": "^7.0.2",
+    "vitest": "^5.1.0"
   }
 }
